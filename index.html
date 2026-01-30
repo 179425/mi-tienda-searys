@@ -50,12 +50,24 @@
         </div>
 
         <div class="header-right">
+          <!-- 🔐 Botón de Admin - Oculto por defecto, solo visible con sesión activa -->
           <button
             class="admin-btn"
             id="adminBtn"
             title="Panel de Administración"
+            style="display: none;"
           >
             <i class="fas fa-cog"></i>
+          </button>
+          <!-- 🔐 Botón de Cerrar Sesión Admin -->
+          <button
+            class="admin-btn logout-btn"
+            id="logoutAdminBtn"
+            title="Cerrar Sesión de Administrador"
+            style="display: none;"
+            onclick="logoutAdmin()"
+          >
+            <i class="fas fa-sign-out-alt"></i>
           </button>
           <button class="cart-btn" id="cartBtn">
             <i class="fas fa-shopping-cart"></i>
