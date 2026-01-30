@@ -16,6 +16,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         initTiendaDB();
     }
     
+    // 🔐 Verificar acceso admin desde URL
+    checkAdminAccess();
+    
+    // 🔐 Mostrar/ocultar controles de admin
+    toggleAdminUI();
+    
     // Cargar carrito guardado
     loadTiendaCart();
     updateCartBadge();
@@ -260,7 +266,7 @@ function closeProductModalFunc() {
 
 let searchTimeout = null;
 
-function handleSearch() {
+function handleSearch(e) {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
         renderProducts();
@@ -349,7 +355,7 @@ function setupEventListeners() {
         });
     }
     
-    // Admin
+    // 🔐 Admin - Solo si está autenticado
     const adminBtn = document.getElementById('adminBtn');
     const closeAdminModal = document.getElementById('closeAdminModal');
     
@@ -405,6 +411,13 @@ function closeCartFunc() {
 }
 
 function openAdminPanel() {
+    // 🔐 Verificar autenticación antes de abrir
+    if (!isAdminAuthenticated()) {
+        showToast('❌ Acceso denegado', 'error');
+        log.warn('Intento de acceso no autorizado al panel de administración');
+        return;
+    }
+    
     const modal = document.getElementById('adminModal');
     if (modal) {
         modal.classList.add('active');
