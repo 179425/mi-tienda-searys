@@ -16,11 +16,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         initTiendaDB();
     }
     
-    // 🔐 Verificar acceso admin desde URL
-    checkAdminAccess();
+    // 🔐 Verificar acceso admin desde URL y actualizar UI
+    const hasAdminAccess = checkAdminAccess();
     
     // 🔐 Mostrar/ocultar controles de admin
-    toggleAdminUI();
+    // Esperar un poco para asegurar que el DOM esté listo
+    setTimeout(() => {
+        toggleAdminUI();
+        
+        // Si se autenticó, mostrar mensaje
+        if (hasAdminAccess && isAdminAuthenticated()) {
+            log.success('✅ Modo administrador activado');
+        }
+    }, 100);
     
     // Cargar carrito guardado
     loadTiendaCart();
