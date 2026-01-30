@@ -139,7 +139,10 @@ function logoutAdmin() {
     adminModal.classList.remove('active');
   }
 
-  showToast('Sesión de administrador cerrada', 'success');
+  // Mostrar toast si la función está disponible
+  if (typeof showToast === 'function') {
+    showToast('Sesión de administrador cerrada', 'success');
+  }
 }
 
 // Verificar URL para activar modo admin
@@ -152,11 +155,26 @@ function checkAdminAccess() {
       // Limpiar URL sin recargar la página
       window.history.replaceState({}, document.title, window.location.pathname);
       log.success('🔓 Acceso admin concedido');
-      showToast('Bienvenido Administrador', 'success');
+      
+      // Mostrar toast si la función ya está disponible
+      if (typeof showToast === 'function') {
+        showToast('Bienvenido Administrador', 'success');
+      }
+      
+      // Actualizar UI de admin
+      setTimeout(() => {
+        toggleAdminUI();
+      }, 100);
+      
       return true;
     } else {
       log.error('🔒 Clave de admin incorrecta');
-      showToast('Clave de administrador incorrecta', 'error');
+      
+      // Mostrar toast si la función ya está disponible
+      if (typeof showToast === 'function') {
+        showToast('Clave de administrador incorrecta', 'error');
+      }
+      
       window.history.replaceState({}, document.title, window.location.pathname);
       return false;
     }
