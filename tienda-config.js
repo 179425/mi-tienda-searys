@@ -14,6 +14,13 @@ const CLOUDINARY_CONFIG = {
   apiKey: '',
 };
 
+// 🔐 CONFIGURACIÓN DE ACCESO ADMIN
+// ⚠️ CAMBIA ESTA CLAVE POR UNA PROPIA Y MANTENLA SECRETA
+const ADMIN_CONFIG = {
+  secretKey: 'searys2025admin', // Cambia esto por tu propia clave secreta
+  sessionDuration: 24 * 60 * 60 * 1000, // 24 horas en milisegundos
+};
+
 // Configuración de la tienda
 const TIENDA_CONFIG = {
   nombre: 'SeArys Store',
@@ -65,6 +72,119 @@ window.tiendaProducts = [];
 window.tiendaCart = [];
 window.tiendaCategories = TIENDA_CONFIG.categorias;
 window.selectedCategory = 'Todos';
+
+// ============================================
+// 🔐 FUNCIONES DE AUTENTICACIÓN ADMIN
+// ============================================
+
+// Verificar si hay sesión admin activa
+function isAdminAuthenticated() {
+  const session = sessionStorage.getItem('searys_admin_session');
+  if (!session) return false;
+
+  try {
+    const sessionData = JSON.parse(session);
+    const now = new Date().getTime();
+
+    // Verificar si la sesión no ha expirado
+    if (now < sessionData.expiry) {
+      return true;
+    } else {
+      // Sesión expirada, limpiar
+      sessionStorage.removeItem('searys_admin_session');
+      return false;
+    }
+  } catch (error) {
+    return false;
+  }
+}
+
+// Autenticar admin con clave secreta
+function authenticateAdmin(secretKey) {
+  if (secretKey === ADMIN_CONFIG.secretKey) {
+    const expiry = new Date().getTime() + ADMIN_CONFIG.sessionDuration;
+    const sessionData = {
+      authenticated: true,
+      expiry: expiry,
+      timestamp: new Date().getTime(),
+    };
+
+    sessionStorage.setItem('searys_admin_session', JSON.stringify(sessionData));
+    log.success('🔓 Sesión admin iniciada');
+    return true;
+  }
+  return false;
+}
+
+// Cerrar sesión admin
+function logoutAdmin() {
+  sessionStorage.removeItem('searys_admin_session');
+  log.info('🔒 Sesión admin cerrada');
+
+  // Ocultar botones de admin
+  const adminBtn = document.getElementById('adminBtn');
+  const logoutBtn = document.getElementById('logoutAdminBtn');
+  
+  if (adminBtn) {
+    adminBtn.style.display = 'none';
+  }
+  
+  if (logoutBtn) {
+    logoutBtn.style.display = 'none';
+  }
+
+  // Cerrar modal de admin si está abierto
+  const adminModal = document.getElementById('adminModal');
+  if (adminModal && adminModal.classList.contains('active')) {
+    adminModal.classList.remove('active');
+  }
+
+  showToast('Sesión de administrador cerrada', 'success');
+}
+
+// Verificar URL para activar modo admin
+function checkAdminAccess() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const adminKey = urlParams.get('admin');
+
+  if (adminKey) {
+    if (authenticateAdmin(adminKey)) {
+      // Limpiar URL sin recargar la página
+      window.history.replaceState({}, document.title, window.location.pathname);
+      log.success('🔓 Acceso admin concedido');
+      showToast('Bienvenido Administrador', 'success');
+      return true;
+    } else {
+      log.error('🔒 Clave de admin incorrecta');
+      showToast('Clave de administrador incorrecta', 'error');
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return false;
+    }
+  }
+
+  return isAdminAuthenticated();
+}
+
+// Mostrar/ocultar controles de admin según autenticación
+function toggleAdminUI() {
+  const adminBtn = document.getElementById('adminBtn');
+  const logoutBtn = document.getElementById('logoutAdminBtn');
+  const isAuthenticated = isAdminAuthenticated();
+
+  if (adminBtn) {
+    adminBtn.style.display = isAuthenticated ? 'flex' : 'none';
+  }
+  
+  if (logoutBtn) {
+    logoutBtn.style.display = isAuthenticated ? 'flex' : 'none';
+  }
+
+  return isAuthenticated;
+}
+
+// ============================================
+// FUNCIONES ORIGINALES
+// ============================================
 
 // Cargar productos desde Supabase
 async function loadTiendaProducts() {
@@ -131,6 +251,7 @@ function formatWhatsAppNumber(number) {
 // Exportar configuración
 window.TIENDA_CONFIG = TIENDA_CONFIG;
 window.CLOUDINARY_CONFIG = CLOUDINARY_CONFIG;
+window.ADMIN_CONFIG = ADMIN_CONFIG;
 window.tiendaDB = null;
 window.initTiendaDB = initTiendaDB;
 window.loadTiendaProducts = loadTiendaProducts;
@@ -141,4 +262,11 @@ window.formatPrice = formatPrice;
 window.formatWhatsAppNumber = formatWhatsAppNumber;
 window.log = log;
 
-log.success('tienda-config.js cargado ✅ CLOUDINARY Y WHATSAPP CONFIGURADOS');
+// Exportar funciones de admin
+window.isAdminAuthenticated = isAdminAuthenticated;
+window.authenticateAdmin = authenticateAdmin;
+window.logoutAdmin = logoutAdmin;
+window.checkAdminAccess = checkAdminAccess;
+window.toggleAdminUI = toggleAdminUI;
+
+log.success('tienda-config.js cargado ✅ CLOUDINARY, WHATSAPP Y SEGURIDAD ADMIN CONFIGURADOS');
