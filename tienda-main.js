@@ -318,8 +318,27 @@ function setupEventListeners() {
     
     // Búsqueda
     const searchInput = document.getElementById('searchInput');
+    const searchToggle = document.getElementById('searchToggle');
+    const searchBox = document.getElementById('searchBox');
+    
+    if (searchToggle && searchBox) {
+        searchToggle.addEventListener('click', () => {
+            searchBox.classList.toggle('collapsed');
+            if (!searchBox.classList.contains('collapsed')) {
+                // Enfocar el input cuando se expande
+                setTimeout(() => searchInput.focus(), 300);
+            }
+        });
+    }
+    
     if (searchInput) {
         searchInput.addEventListener('input', handleSearch);
+        // Colapsar al hacer blur si está vacío
+        searchInput.addEventListener('blur', () => {
+            if (searchInput.value.trim() === '') {
+                setTimeout(() => searchBox.classList.add('collapsed'), 200);
+            }
+        });
     }
     
     // Modal de producto
