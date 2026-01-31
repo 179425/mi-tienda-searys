@@ -24,30 +24,27 @@
     <link rel="stylesheet" href="tienda-styles.css" />
   </head>
   <body>
-    <!-- HEADER -->
+    <!-- HEADER MEJORADO -->
     <header class="store-header">
       <div class="header-container">
-        <button class="menu-toggle" id="menuToggle">
-          <i class="fas fa-bars"></i>
-        </button>
-        
+        <!-- Logo a la izquierda -->
         <h1 class="store-logo">
           SeArys
         </h1>
 
-        <div class="header-actions">
-          <div class="search-box collapsed" id="searchBox">
-            <button class="search-toggle" id="searchToggle">
-              <i class="fas fa-search"></i>
-            </button>
-            <input
-              type="text"
-              id="searchInput"
-              placeholder="Buscar productos..."
-              autocomplete="off"
-            />
-          </div>
+        <!-- Barra de búsqueda en el centro -->
+        <div class="search-box-center">
+          <i class="fas fa-search search-icon"></i>
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Buscar productos..."
+            autocomplete="off"
+          />
+        </div>
 
+        <!-- Acciones a la derecha -->
+        <div class="header-actions">
           <button
             class="admin-btn"
             id="adminBtn"
@@ -64,37 +61,17 @@
       </div>
     </header>
 
-    <!-- SIDEBAR MENU (móvil) -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <h3>Categorías</h3>
-        <button class="close-sidebar" id="closeSidebar">
-          <i class="fas fa-times"></i>
-        </button>
+    <!-- CATEGORÍAS CON MINIATURAS -->
+    <section class="categories-gallery">
+      <div class="categories-scroll" id="categoriesGallery">
+        <!-- Se llena dinámicamente con miniaturas -->
       </div>
-      <nav class="categories-nav" id="categoriesNav">
-        <!-- Se llena dinámicamente -->
-      </nav>
-    </aside>
-
-    <!-- OVERLAY para sidebar -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    </section>
 
     <!-- MAIN CONTENT -->
     <main class="main-content">
-      <!-- CATEGORÍAS (desktop) -->
-      <section class="categories-section desktop-only">
-        <div class="categories-container" id="categoriesDesktop">
-          <!-- Se llena dinámicamente -->
-        </div>
-      </section>
-
       <!-- PRODUCTOS -->
       <section class="products-section">
-        <div class="section-header">
-          <h2 id="categoryTitle" class="compact-title">Todos los Productos</h2>
-        </div>
-
         <!-- Grid de productos -->
         <div class="products-grid" id="productsGrid">
           <!-- Se llena dinámicamente -->
@@ -231,6 +208,10 @@
             <i class="fas fa-box"></i>
             Productos
           </button>
+          <button class="admin-tab" data-tab="categories">
+            <i class="fas fa-th-large"></i>
+            Categorías
+          </button>
           <button class="admin-tab" data-tab="images">
             <i class="fas fa-images"></i>
             Gestión de Imágenes
@@ -253,6 +234,20 @@
               Haz clic en "Cambiar Imagen" para actualizar la foto de un producto
             </p>
             <div class="products-with-images" id="productsWithImages">
+              <!-- Se llena dinámicamente -->
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: Categorías -->
+        <div class="admin-tab-content" id="tabCategories">
+          <div class="admin-section">
+            <h3>Gestión de Categorías</h3>
+            <p class="admin-help">
+              <i class="fas fa-info-circle"></i>
+              Agrega miniaturas a tus categorías. Las imágenes se mostrarán en la galería de categorías
+            </p>
+            <div class="categories-management" id="categoriesManagement">
               <!-- Se llena dinámicamente -->
             </div>
           </div>
