@@ -295,11 +295,11 @@ body {
   margin-bottom: 2rem;
 }
 
-/* Grid de Productos - Diseño Limpio Sin Cajón */
+/* Grid de Productos - Diseño Limpio Flotante */
 .products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 2.5rem 2rem;
+  gap: 3rem 2rem;
   padding: 1rem 0;
 }
 
@@ -315,17 +315,16 @@ body {
 }
 
 .product-card:hover .product-image {
-  transform: scale(1.05);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  transform: scale(1.03);
+  filter: brightness(1.05);
 }
 
 .product-image {
   width: 100%;
   height: 240px;
   object-fit: cover;
-  border-radius: 20px;
-  background: var(--white);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  background: transparent;
   transition: all 0.4s ease;
   margin-bottom: 1rem;
 }
@@ -360,9 +359,9 @@ body {
 
 .product-price-row {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   margin-top: 0.75rem;
 }
 
@@ -376,30 +375,45 @@ body {
   background-clip: text;
 }
 
+/* Barra sutil para agregar al carrito */
 .add-to-cart-btn {
-  background: var(--primary);
-  color: var(--white);
+  width: 100%;
+  max-width: 200px;
+  height: 4px;
+  background: linear-gradient(90deg, transparent 0%, var(--primary) 50%, transparent 100%);
   border: none;
-  border-radius: 50%;
-  width: 42px;
-  height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: 2px;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-size: 1rem;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  font-size: 0;
+}
+
+.add-to-cart-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  transition: all 0.5s ease;
 }
 
 .add-to-cart-btn:hover {
-  background: var(--primary-dark);
-  transform: scale(1.15);
-  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+  height: 6px;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--primary) 100%);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+}
+
+.add-to-cart-btn:hover::before {
+  left: 100%;
 }
 
 .add-to-cart-btn:active {
-  transform: scale(1.05);
+  transform: scaleY(0.8);
 }
 
 /* Estados */
@@ -1182,12 +1196,12 @@ body {
 
   .products-grid {
     grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
-    gap: 1.75rem 1rem;
+    gap: 2.5rem 1rem;
   }
 
   .product-image {
     height: 180px;
-    border-radius: 16px;
+    border-radius: 14px;
   }
 
   .product-name {
@@ -1204,9 +1218,12 @@ body {
   }
 
   .add-to-cart-btn {
-    width: 36px;
-    height: 36px;
-    font-size: 0.9rem;
+    max-width: 140px;
+    height: 3px;
+  }
+  
+  .add-to-cart-btn:hover {
+    height: 5px;
   }
 
   .toast {
