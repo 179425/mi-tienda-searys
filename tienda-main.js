@@ -216,9 +216,7 @@ function createProductCard(product) {
             </div>
             <div class="product-price-row">
                 <div class="product-price">${formatPrice(product.sale_price)}</div>
-                <button class="add-to-cart-btn" title="Agregar al carrito">
-                    <i class="fas fa-cart-plus"></i>
-                </button>
+                <button class="add-to-cart-btn" title="Agregar al carrito"></button>
             </div>
         </div>
     `;
