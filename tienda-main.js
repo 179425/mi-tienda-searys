@@ -142,19 +142,41 @@ async function loadAndRenderProducts() {
     if (emptyState) emptyState.style.display = 'none';
     
     try {
-        const products = await loadTiendaProducts();
+        // Timeout de 10 segundos para evitar carga infinita
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout: La conexión tardó demasiado')), 10000)
+        );
+        
+        const products = await Promise.race([
+            loadTiendaProducts(),
+            timeoutPromise
+        ]);
         
         if (loadingState) loadingState.style.display = 'none';
         
         if (products && products.length > 0) {
             renderProducts(products);
         } else {
-            if (emptyState) emptyState.style.display = 'block';
+            if (emptyState) {
+                emptyState.style.display = 'block';
+                const emptyText = emptyState.querySelector('p');
+                if (emptyText) {
+                    emptyText.textContent = 'No hay productos disponibles. Verifica tu base de datos en Supabase.';
+                }
+            }
+            log.warn('No se encontraron productos en la base de datos');
         }
     } catch (error) {
         log.error('Error cargando productos: ' + error.message);
         if (loadingState) loadingState.style.display = 'none';
-        if (emptyState) emptyState.style.display = 'block';
+        if (emptyState) {
+            emptyState.style.display = 'block';
+            const emptyText = emptyState.querySelector('p');
+            if (emptyText) {
+                emptyText.textContent = `Error: ${error.message}. Verifica tu conexión con Supabase.`;
+            }
+        }
+        showToast('Error al cargar productos. Revisa la consola.', 'error');
     }
 }
 
@@ -205,18 +227,26 @@ function createProductCard(product) {
     card.className = 'product-card';
     
     const imageUrl = product.image_url || 'https://via.placeholder.com/300x300?text=Sin+Imagen';
+    const isOutOfStock = product.quantity <= 0;
+    
+    // Agregar clase si está agotado
+    if (isOutOfStock) {
+        card.classList.add('out-of-stock');
+    }
     
     card.innerHTML = `
         <img src="${imageUrl}" alt="${product.name}" class="product-image" onerror="this.src='https://via.placeholder.com/300x300?text=Sin+Imagen'">
         <div class="product-card-body">
             <h3 class="product-name">${product.name}</h3>
-            <div class="product-stock">
-                <i class="fas fa-box"></i>
-                <span>${product.quantity} disponibles</span>
+            <div class="product-stock ${isOutOfStock ? 'stock-empty' : ''}">
+                <i class="fas ${isOutOfStock ? 'fa-times-circle' : 'fa-box'}"></i>
+                <span>${isOutOfStock ? 'Agotado' : `${product.quantity} disponibles`}</span>
             </div>
             <div class="product-price-row">
                 <div class="product-price">${formatPrice(product.sale_price)}</div>
-                <button class="add-to-cart-btn" title="Agregar al carrito">Agregar</button>
+                <button class="add-to-cart-btn" title="${isOutOfStock ? 'Producto agotado' : 'Agregar al carrito'}" ${isOutOfStock ? 'disabled' : ''}>
+                    ${isOutOfStock ? 'Agotado' : 'Agregar'}
+                </button>
             </div>
         </div>
     `;
@@ -228,12 +258,14 @@ function createProductCard(product) {
         }
     });
     
-    // Click en el botón de agregar
-    const addBtn = card.querySelector('.add-to-cart-btn');
-    addBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        addToCart(product, 1);
-    });
+    // Click en el botón de agregar (solo si hay stock)
+    if (!isOutOfStock) {
+        const addBtn = card.querySelector('.add-to-cart-btn');
+        addBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            addToCart(product, 1);
+        });
+    }
     
     return card;
 }
