@@ -17,6 +17,9 @@ async function loadAdminData() {
 
   // Cargar productos sin imagen
   await loadProductsWithoutImages();
+  
+  // Cargar productos con imagen
+  await loadProductsWithImages();
 }
 
 // ============================================
@@ -274,6 +277,9 @@ async function saveProductImage(productId, imageUrl) {
 
     // Recargar lista de productos sin imagen
     await loadProductsWithoutImages();
+    
+    // Recargar lista de productos con imagen
+    await loadProductsWithImages();
 
     // Re-renderizar productos en la tienda
     if (typeof renderProducts === 'function') {
@@ -349,10 +355,128 @@ async function updateProductStock(productId, newStock) {
 }
 
 // ============================================
+// CARGAR PRODUCTOS CON IMAGEN
+// ============================================
+
+async function loadProductsWithImages() {
+  const container = document.getElementById('productsWithImages');
+  if (!container) return;
+
+  container.innerHTML =
+    '<div style="text-align: center; padding: 2rem;"><div class="spinner"></div><p>Cargando...</p></div>';
+
+  try {
+    // Recargar productos
+    await loadTiendaProducts();
+
+    const products = window.tiendaProducts || [];
+    const withImages = products.filter((p) => p.image_url);
+
+    if (withImages.length === 0) {
+      container.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--gray-500);">
+                    <i class="fas fa-images" style="font-size: 3rem; margin-bottom: 1rem; color: var(--gray-400);"></i>
+                    <h4>No hay productos con imagen</h4>
+                    <p>Sube imágenes desde la sección anterior</p>
+                </div>
+            `;
+      return;
+    }
+
+    container.innerHTML = '';
+
+    withImages.forEach((product) => {
+      const row = createProductRowWithImage(product);
+      container.appendChild(row);
+    });
+  } catch (error) {
+    log.error('Error cargando productos: ' + error.message);
+    container.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: var(--error);">
+                <i class="fas fa-exclamation-circle" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                <p>Error al cargar productos</p>
+            </div>
+        `;
+  }
+}
+
+function createProductRowWithImage(product) {
+  const row = document.createElement('div');
+  row.className = 'product-row-with-image';
+  row.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+  `;
+
+  const imageUrl = product.image_url || 'https://via.placeholder.com/80x80?text=Sin+Imagen';
+
+  row.innerHTML = `
+        <img 
+            src="${imageUrl}" 
+            alt="${product.name}" 
+            style="
+                width: 80px; 
+                height: 80px; 
+                object-fit: cover; 
+                border-radius: 8px;
+                border: 2px solid var(--gray-200);
+            "
+            onerror="this.src='https://via.placeholder.com/80x80?text=Error'"
+        >
+        <div style="flex: 1;">
+            <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 0.25rem;">
+                ${product.name}
+            </div>
+            <div style="font-size: 0.875rem; color: var(--gray-600);">
+                ${formatPrice(product.sale_price)} | Stock: ${product.quantity}
+            </div>
+        </div>
+        <button 
+            class="change-image-btn" 
+            data-product-id="${product.id}"
+            style="
+                background: var(--primary);
+                color: white;
+                border: none;
+                padding: 0.625rem 1.25rem;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                white-space: nowrap;
+            "
+            onmouseover="this.style.background='var(--primary-dark)'"
+            onmouseout="this.style.background='var(--primary)'"
+        >
+            <i class="fas fa-sync-alt"></i>
+            Cambiar Imagen
+        </button>
+    `;
+
+  const changeBtn = row.querySelector('.change-image-btn');
+  changeBtn.addEventListener('click', () => {
+    openCloudinaryUpload(product);
+  });
+
+  return row;
+}
+
+// ============================================
 // EXPORTAR FUNCIONES
 // ============================================
 
 window.loadAdminData = loadAdminData;
+window.loadProductsWithImages = loadProductsWithImages;
 window.openCloudinaryUpload = openCloudinaryUpload;
 window.saveProductImage = saveProductImage;
 window.assignProductCategory = assignProductCategory;
