@@ -33,13 +33,15 @@
           </button>
           <h1 class="store-logo">
             <i class="fas fa-store"></i>
-            SeArys Store
+            SeArys Pharmarket
           </h1>
         </div>
 
         <div class="header-center">
-          <div class="search-box">
-            <i class="fas fa-search"></i>
+          <div class="search-box collapsed" id="searchBox">
+            <button class="search-toggle" id="searchToggle">
+              <i class="fas fa-search"></i>
+            </button>
             <input
               type="text"
               id="searchInput"
@@ -93,10 +95,7 @@
       <!-- PRODUCTOS -->
       <section class="products-section">
         <div class="section-header">
-          <h2 id="categoryTitle">Todos los Productos</h2>
-          <div class="products-count">
-            <span id="productsCount">0</span> productos
-          </div>
+          <h2 id="categoryTitle" class="compact-title">Todos los Productos</h2>
         </div>
 
         <!-- Grid de productos -->
