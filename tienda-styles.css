@@ -35,12 +35,20 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
   background: var(--gray-50);
   color: var(--gray-900);
   line-height: 1.6;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 /* ============================================
@@ -53,6 +61,8 @@ body {
   position: sticky;
   top: 0;
   z-index: 1000;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .header-container {
@@ -62,6 +72,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
+  overflow: hidden;
   gap: 1rem;
   min-height: 60px;
 }
@@ -90,6 +102,8 @@ body {
   gap: 0.4rem;
   white-space: nowrap;
   margin: 0;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .store-logo i {
@@ -309,6 +323,8 @@ body {
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem 1rem;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 /* Categorías Desktop */
@@ -1129,11 +1145,12 @@ body {
   }
   
   .logo-text {
-    display: none;
+    display: inline-block;
   }
   
   .header-actions {
     gap: 0.4rem;
+    flex-shrink: 0;
   }
   
   .search-box .search-toggle,
@@ -1149,8 +1166,10 @@ body {
   }
   
   .search-box input {
-    min-width: 150px;
+    min-width: 120px;
+    max-width: 180px;
     font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
   }
   
   .cart-badge {
