@@ -251,11 +251,11 @@ function createProductCard(product) {
         </div>
     `;
     
-    // Click en la tarjeta abre modal
-    card.addEventListener('click', (e) => {
-        if (!e.target.closest('.add-to-cart-btn')) {
-            openProductModal(product);
-        }
+    // Click en la imagen abre visor de imagen
+    const productImage = card.querySelector('.product-image');
+    productImage.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openImageViewer(imageUrl, product.name);
     });
     
     // Click en el botón de agregar (solo si hay stock)
@@ -303,6 +303,61 @@ function closeProductModalFunc() {
     const modal = document.getElementById('productModal');
     if (modal) modal.classList.remove('active');
     currentProduct = null;
+}
+
+// ============================================
+// VISOR DE IMAGEN SIMPLE
+// ============================================
+
+function openImageViewer(imageUrl, productName) {
+    // Crear el visor si no existe
+    let viewer = document.getElementById('imageViewer');
+    
+    if (!viewer) {
+        viewer = document.createElement('div');
+        viewer.id = 'imageViewer';
+        viewer.className = 'image-viewer';
+        viewer.innerHTML = `
+            <div class="image-viewer-overlay"></div>
+            <div class="image-viewer-content">
+                <button class="image-viewer-close" aria-label="Cerrar">
+                    <i class="fas fa-times"></i>
+                </button>
+                <img class="image-viewer-img" src="" alt="">
+                <div class="image-viewer-name"></div>
+            </div>
+        `;
+        document.body.appendChild(viewer);
+        
+        // Cerrar al hacer clic en el overlay o botón
+        viewer.querySelector('.image-viewer-overlay').addEventListener('click', closeImageViewer);
+        viewer.querySelector('.image-viewer-close').addEventListener('click', closeImageViewer);
+        
+        // Cerrar con ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && viewer.classList.contains('active')) {
+                closeImageViewer();
+            }
+        });
+    }
+    
+    // Actualizar imagen y mostrar
+    const img = viewer.querySelector('.image-viewer-img');
+    const name = viewer.querySelector('.image-viewer-name');
+    
+    if (img) img.src = imageUrl;
+    if (name) name.textContent = productName;
+    
+    viewer.classList.add('active');
+    document.body.style.overflow = 'hidden'; // Evitar scroll del body
+}
+
+function closeImageViewer() {
+    const viewer = document.getElementById('imageViewer');
+    if (viewer) {
+        viewer.classList.remove('active');
+        document.body.style.overflow = ''; // Restaurar scroll
+    }
 }
 
 // ============================================
