@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificador de Actualización - SeArys Store</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #4f46e5; margin-bottom: 10px; }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .success {
+            background: #dcfce7;
+            color: #10b981;
+            border: 2px solid #10b981;
+        }
+        .error {
+            background: #fee2e2;
+            color: #ef4444;
+            border: 2px solid #ef4444;
+        }
+        .warning {
+            background: #fef3c7;
+            color: #f59e0b;
+            border: 2px solid #f59e0b;
+        }
+        .check-item {
+            padding: 12px;
+            margin: 8px 0;
+            background: #f9fafb;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .icon-ok { color: #10b981; font-size: 20px; }
+        .icon-error { color: #ef4444; font-size: 20px; }
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px 5px 0;
+        }
+        button:hover { background: #4338ca; }
+        code {
+            background: #f3f4f6;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .instructions {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Verificador de Actualización</h1>
+        <p style="color: #6b7280;">Comprueba si los archivos están actualizados correctamente</p>
+
+        <div id="mainStatus" class="status warning">
+            ⏳ Verificando archivos...
+        </div>
+
+        <h3 style="margin-top: 30px;">Resultados de la Verificación:</h3>
+        <div id="checkResults"></div>
+
+        <div class="instructions" id="instructions" style="display: none;">
+            <h4 style="margin-top: 0;">📝 Instrucciones para Solucionar:</h4>
+            <div id="instructionsContent"></div>
+        </div>
+
+        <button onclick="runCheck()">🔄 Verificar de Nuevo</button>
+        <button onclick="clearCache()">🗑️ Limpiar Caché del Navegador</button>
+        <button onclick="forceReload()">⚡ Recargar Página (Hard Refresh)</button>
+    </div>
+
+    <script>
+        function addCheckResult(message, isOk) {
+            const results = document.getElementById('checkResults');
+            const icon = isOk ? '✅' : '❌';
+            const iconClass = isOk ? 'icon-ok' : 'icon-error';
+            
+            const item = document.createElement('div');
+            item.className = 'check-item';
+            item.innerHTML = `<span class="${iconClass}">${icon}</span> ${message}`;
+            results.appendChild(item);
+            
+            return isOk;
+        }
+
+        function runCheck() {
+            const results = document.getElementById('checkResults');
+            const mainStatus = document.getElementById('mainStatus');
+            const instructions = document.getElementById('instructions');
+            const instructionsContent = document.getElementById('instructionsContent');
+            
+            results.innerHTML = '';
+            let allOk = true;
+            let issues = [];
+
+            // Check 1: Verificar si existe el elemento HTML
+            const productsWithImages = document.getElementById('productsWithImages');
+            if (addCheckResult('Elemento HTML "productsWithImages" existe en la página', !!productsWithImages)) {
+                // OK
+            } else {
+                allOk = false;
+                issues.push('El archivo <code>index.html</code> NO está actualizado');
+            }
+
+            // Check 2: Verificar si existe la función JavaScript
+            const hasFunctionDefined = typeof loadProductsWithImages === 'function';
+            if (addCheckResult('Función "loadProductsWithImages()" está definida', hasFunctionDefined)) {
+                // OK
+            } else {
+                allOk = false;
+                issues.push('El archivo <code>tienda-admin.js</code> NO está actualizado');
+            }
+
+            // Check 3: Verificar si el tab de productos existe
+            const tabProducts = document.getElementById('tabProducts');
+            const hasNewSection = tabProducts && tabProducts.innerHTML.includes('Todos los Productos con Imagen');
+            if (addCheckResult('Sección "Todos los Productos con Imagen" está en el HTML', hasNewSection)) {
+                // OK
+            } else {
+                allOk = false;
+                issues.push('La nueva sección no está visible en el panel');
+            }
+
+            // Check 4: Verificar si loadAdminData llama a la nueva función
+            const loadAdminDataString = loadAdminData.toString();
+            const callsNewFunction = loadAdminDataString.includes('loadProductsWithImages');
+            if (addCheckResult('loadAdminData() llama a loadProductsWithImages()', callsNewFunction)) {
+                // OK
+            } else {
+                allOk = false;
+                issues.push('La función loadAdminData() no está actualizada');
+            }
+
+            // Resultado final
+            if (allOk) {
+                mainStatus.className = 'status success';
+                mainStatus.innerHTML = '✅ <strong>¡TODO CORRECTO!</strong><br>Los archivos están actualizados. Si no ves la sección, limpia el caché del navegador.';
+                instructions.style.display = 'none';
+            } else {
+                mainStatus.className = 'status error';
+                mainStatus.innerHTML = '❌ <strong>ARCHIVOS NO ACTUALIZADOS</strong><br>Algunos archivos no se han actualizado correctamente.';
+                instructions.style.display = 'block';
+                
+                let instructionsHTML = '<ol style="margin: 10px 0;">';
+                instructionsHTML += '<li>Asegúrate de haber <strong>reemplazado</strong> estos archivos en tu servidor:<ul>';
+                if (issues.some(i => i.includes('index.html'))) {
+                    instructionsHTML += '<li><code>index.html</code></li>';
+                }
+                if (issues.some(i => i.includes('tienda-admin.js'))) {
+                    instructionsHTML += '<li><code>tienda-admin.js</code></li>';
+                }
+                instructionsHTML += '</ul></li>';
+                instructionsHTML += '<li>Haz un <strong>Hard Refresh</strong>:<ul>';
+                instructionsHTML += '<li>Windows: <code>Ctrl + Shift + R</code> o <code>Ctrl + F5</code></li>';
+                instructionsHTML += '<li>Mac: <code>Cmd + Shift + R</code></li>';
+                instructionsHTML += '</ul></li>';
+                instructionsHTML += '<li>Si usas GitHub Pages, espera <strong>1-2 minutos</strong> después de hacer push</li>';
+                instructionsHTML += '<li>Limpia el caché del navegador completamente</li>';
+                instructionsHTML += '</ol>';
+                
+                instructionsContent.innerHTML = instructionsHTML;
+            }
+        }
+
+        function clearCache() {
+            if (confirm('Esto abrirá la configuración del navegador para limpiar el caché.\n\n¿Continuar?')) {
+                // Intentar abrir configuración de caché
+                window.open('chrome://settings/clearBrowserData', '_blank');
+            }
+        }
+
+        function forceReload() {
+            window.location.reload(true);
+        }
+
+        // Ejecutar verificación al cargar
+        window.addEventListener('DOMContentLoaded', () => {
+            // Esperar a que se carguen todos los scripts
+            setTimeout(runCheck, 500);
+        });
+    </script>
+
+    <script src="tienda-config.js"></script>
+    <script src="tienda-admin.js"></script>
+</body>
+</html>
