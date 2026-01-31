@@ -212,13 +212,13 @@ async function loadTiendaProducts() {
     const { data, error } = await tiendaDB
       .from('products')
       .select('*')
-      .gt('quantity', 0) // Solo productos con stock
+      .order('quantity', { ascending: false }) // Primero con stock, luego sin stock
       .order('name');
 
     if (error) throw error;
 
     window.tiendaProducts = data || [];
-    log.success(`${data.length} productos cargados`);
+    log.success(`${data.length} productos cargados (${data.filter(p => p.quantity > 0).length} con stock)`);
 
     return data;
   } catch (error) {
