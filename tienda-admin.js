@@ -1,313 +1,485 @@
-<!DOCTYPE html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SeArys Store - Tienda Virtual</title>
+// ============================================
+// TIENDA-ADMIN.JS - Panel de Administración
+// ============================================
 
-    <!-- Supabase -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+let cloudinaryWidget = null;
+let currentProductForUpload = null;
 
-    <!-- Cloudinary Upload Widget -->
-    <script
-      src="https://upload-widget.cloudinary.com/global/all.js"
-      type="text/javascript"
-    ></script>
+// ============================================
+// CARGAR DATOS DEL ADMIN
+// ============================================
 
-    <!-- Font Awesome para iconos -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+async function loadAdminData() {
+  log.info('Cargando datos de administración...');
 
-    <!-- Estilos -->
-    <link rel="stylesheet" href="tienda-styles.css" />
-  </head>
-  <body>
-    <!-- HEADER -->
-    <header class="store-header">
-      <div class="header-container">
-        <div class="header-left">
-          <button class="menu-toggle" id="menuToggle">
-            <i class="fas fa-bars"></i>
-          </button>
-          <h1 class="store-logo">
-            <i class="fas fa-store"></i>
-            SeArys Store
-          </h1>
-        </div>
+  // Verificar estado de Cloudinary
+  checkCloudinaryConfig();
 
-        <div class="header-center">
-          <div class="search-box">
-            <i class="fas fa-search"></i>
-            <input
-              type="text"
-              id="searchInput"
-              placeholder="Buscar productos..."
-              autocomplete="off"
-            />
-          </div>
-        </div>
+  // Cargar productos sin imagen
+  await loadProductsWithoutImages();
+  
+  // Cargar productos con imagen
+  await loadProductsWithImages();
+}
 
-        <div class="header-right">
-          <button
-            class="admin-btn"
-            id="adminBtn"
-            title="Panel de Administración"
-          >
-            <i class="fas fa-cog"></i>
-          </button>
-          <button class="cart-btn" id="cartBtn">
-            <i class="fas fa-shopping-cart"></i>
-            <span class="cart-badge" id="cartBadge">0</span>
-          </button>
-        </div>
-      </div>
-    </header>
+// ============================================
+// VERIFICAR CONFIGURACIÓN DE CLOUDINARY
+// ============================================
 
-    <!-- SIDEBAR MENU (móvil) -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <h3>Categorías</h3>
-        <button class="close-sidebar" id="closeSidebar">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      <nav class="categories-nav" id="categoriesNav">
-        <!-- Se llena dinámicamente -->
-      </nav>
-    </aside>
+function checkCloudinaryConfig() {
+  const statusDiv = document.getElementById('cloudinaryStatus');
+  if (!statusDiv) return;
 
-    <!-- OVERLAY para sidebar -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  const isConfigured =
+    CLOUDINARY_CONFIG.cloudName &&
+    CLOUDINARY_CONFIG.cloudName !== 'TU_CLOUD_NAME' &&
+    CLOUDINARY_CONFIG.uploadPreset &&
+    CLOUDINARY_CONFIG.uploadPreset !== 'TU_UPLOAD_PRESET';
 
-    <!-- MAIN CONTENT -->
-    <main class="main-content">
-      <!-- CATEGORÍAS (desktop) -->
-      <section class="categories-section desktop-only">
-        <div class="categories-container" id="categoriesDesktop">
-          <!-- Se llena dinámicamente -->
-        </div>
-      </section>
-
-      <!-- PRODUCTOS -->
-      <section class="products-section">
-        <div class="section-header">
-          <h2 id="categoryTitle">Todos los Productos</h2>
-          <div class="products-count">
-            <span id="productsCount">0</span> productos
-          </div>
-        </div>
-
-        <!-- Grid de productos -->
-        <div class="products-grid" id="productsGrid">
-          <!-- Se llena dinámicamente -->
-        </div>
-
-        <!-- Estado vacío -->
-        <div class="empty-state" id="emptyState" style="display: none">
-          <i class="fas fa-box-open"></i>
-          <h3>No hay productos</h3>
-          <p>No se encontraron productos en esta categoría</p>
-        </div>
-
-        <!-- Loading -->
-        <div class="loading-state" id="loadingState">
-          <div class="spinner"></div>
-          <p>Cargando productos...</p>
-        </div>
-      </section>
-    </main>
-
-    <!-- CARRITO LATERAL -->
-    <aside class="cart-sidebar" id="cartSidebar">
-      <div class="cart-header">
-        <h3>
-          <i class="fas fa-shopping-cart"></i>
-          Carrito de Compras
-        </h3>
-        <button class="close-cart" id="closeCart">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-
-      <div class="cart-items" id="cartItems">
-        <!-- Se llena dinámicamente -->
-      </div>
-
-      <!-- Estado vacío del carrito -->
-      <div class="cart-empty" id="cartEmpty">
-        <i class="fas fa-shopping-cart"></i>
-        <h4>Carrito vacío</h4>
-        <p>Agrega productos para comenzar</p>
-      </div>
-
-      <div class="cart-summary" id="cartSummary" style="display: none">
-        <div class="summary-row">
-          <span>Subtotal:</span>
-          <strong id="subtotalAmount">$0</strong>
-        </div>
-        <div class="summary-row">
-          <span>Envío:</span>
-          <strong id="shippingAmount">$0</strong>
-        </div>
-        <div class="summary-row total-row">
-          <span>Total:</span>
-          <strong id="totalAmount">$0</strong>
-        </div>
-
-        <button class="checkout-btn" id="checkoutBtn">
-          <i class="fab fa-whatsapp"></i>
-          Finalizar por WhatsApp
-        </button>
-
-        <button class="clear-cart-btn" id="clearCartBtn">
-          <i class="fas fa-trash-alt"></i>
-          Vaciar Carrito
-        </button>
-      </div>
-    </aside>
-
-    <!-- OVERLAY para carrito -->
-    <div class="cart-overlay" id="cartOverlay"></div>
-
-    <!-- MODAL DE PRODUCTO -->
-    <div class="modal" id="productModal">
-      <div class="modal-content">
-        <button class="modal-close" id="closeProductModal">
-          <i class="fas fa-times"></i>
-        </button>
-
-        <div class="product-modal-grid">
-          <div class="product-modal-image">
-            <img id="modalProductImage" src="" alt="" />
-          </div>
-
-          <div class="product-modal-info">
-            <h2 id="modalProductName"></h2>
-            <div class="product-modal-price" id="modalProductPrice"></div>
-
-            <div class="product-modal-stock">
-              <i class="fas fa-box"></i>
-              <span id="modalProductStock"></span> disponibles
+  if (isConfigured) {
+    statusDiv.innerHTML = `
+            <div style="
+                background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+                padding: 1rem;
+                border-radius: 12px;
+                border: 2px solid var(--secondary);
+                margin-top: 1rem;
+            ">
+                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--secondary); font-weight: 700; margin-bottom: 0.5rem;">
+                    <i class="fas fa-check-circle"></i>
+                    Cloudinary Configurado
+                </div>
+                <div style="font-size: 0.9rem; color: var(--gray-700);">
+                    <strong>Cloud Name:</strong> ${CLOUDINARY_CONFIG.cloudName}<br>
+                    <strong>Upload Preset:</strong> ${CLOUDINARY_CONFIG.uploadPreset}
+                </div>
             </div>
-
-            <div class="product-modal-description" id="modalProductDescription">
-              <!-- Descripción del producto -->
+        `;
+  } else {
+    statusDiv.innerHTML = `
+            <div style="
+                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+                padding: 1rem;
+                border-radius: 12px;
+                border: 2px solid var(--error);
+                margin-top: 1rem;
+            ">
+                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--error); font-weight: 700; margin-bottom: 0.5rem;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Cloudinary NO Configurado
+                </div>
+                <div style="font-size: 0.9rem; color: var(--gray-700);">
+                    Por favor edita <code>tienda-config.js</code> con tus credenciales de Cloudinary
+                </div>
             </div>
+        `;
+  }
+}
 
-            <div class="quantity-selector">
-              <label>Cantidad:</label>
-              <div class="quantity-controls">
-                <button class="qty-btn" id="modalQtyMinus">
-                  <i class="fas fa-minus"></i>
-                </button>
-                <input type="number" id="modalQty" value="1" min="1" readonly />
-                <button class="qty-btn" id="modalQtyPlus">
-                  <i class="fas fa-plus"></i>
-                </button>
-              </div>
+// ============================================
+// CARGAR PRODUCTOS SIN IMAGEN
+// ============================================
+
+async function loadProductsWithoutImages() {
+  const container = document.getElementById('productsWithoutImages');
+  if (!container) return;
+
+  container.innerHTML =
+    '<div style="text-align: center; padding: 2rem;"><div class="spinner"></div><p>Cargando...</p></div>';
+
+  try {
+    // Recargar productos
+    await loadTiendaProducts();
+
+    const products = window.tiendaProducts || [];
+    const withoutImages = products.filter((p) => !p.image_url);
+
+    if (withoutImages.length === 0) {
+      container.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--gray-500);">
+                    <i class="fas fa-check-circle" style="font-size: 3rem; margin-bottom: 1rem; color: var(--secondary);"></i>
+                    <h4>¡Excelente!</h4>
+                    <p>Todos los productos tienen imagen</p>
+                </div>
+            `;
+      return;
+    }
+
+    container.innerHTML = '';
+
+    withoutImages.forEach((product) => {
+      const row = createProductRow(product);
+      container.appendChild(row);
+    });
+  } catch (error) {
+    log.error('Error cargando productos: ' + error.message);
+    container.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: var(--error);">
+                <i class="fas fa-exclamation-circle" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                <p>Error al cargar productos</p>
             </div>
+        `;
+  }
+}
 
-            <button class="add-to-cart-btn-large" id="modalAddToCart">
-              <i class="fas fa-cart-plus"></i>
-              Agregar al Carrito
-            </button>
-          </div>
+function createProductRow(product) {
+  const row = document.createElement('div');
+  row.className = 'product-row';
+
+  row.innerHTML = `
+        <div class="product-row-info">
+            <div class="product-row-name">${product.name}</div>
+            <div class="product-row-price">${formatPrice(
+              product.sale_price
+            )} | Stock: ${product.quantity}</div>
         </div>
-      </div>
-    </div>
-
-    <!-- MODAL DE ADMINISTRACIÓN -->
-    <div class="modal" id="adminModal">
-      <div class="modal-content admin-modal-content">
-        <button class="modal-close" id="closeAdminModal">
-          <i class="fas fa-times"></i>
+        <button class="upload-btn" data-product-id="${product.id}">
+            <i class="fas fa-upload"></i>
+            Subir Imagen
         </button>
+    `;
 
-        <h2>
-          <i class="fas fa-cog"></i>
-          Panel de Administración
-        </h2>
+  const uploadBtn = row.querySelector('.upload-btn');
+  uploadBtn.addEventListener('click', () => {
+    openCloudinaryUpload(product);
+  });
 
-        <div class="admin-tabs">
-          <button class="admin-tab active" data-tab="products">
-            <i class="fas fa-box"></i>
-            Productos
-          </button>
-          <button class="admin-tab" data-tab="images">
-            <i class="fas fa-images"></i>
-            Gestión de Imágenes
-          </button>
-        </div>
+  return row;
+}
 
-        <!-- TAB: Productos -->
-        <div class="admin-tab-content active" id="tabProducts">
-          <div class="admin-section">
-            <h3>Productos sin Imagen</h3>
-            <div class="products-without-images" id="productsWithoutImages">
-              <!-- Se llena dinámicamente -->
+// ============================================
+// CLOUDINARY UPLOAD
+// ============================================
+
+function openCloudinaryUpload(product) {
+  const isConfigured =
+    CLOUDINARY_CONFIG.cloudName &&
+    CLOUDINARY_CONFIG.cloudName !== 'TU_CLOUD_NAME' &&
+    CLOUDINARY_CONFIG.uploadPreset &&
+    CLOUDINARY_CONFIG.uploadPreset !== 'TU_UPLOAD_PRESET';
+
+  if (!isConfigured) {
+    alert(
+      '⚠️ Cloudinary no está configurado.\n\nPor favor edita el archivo tienda-config.js con tus credenciales de Cloudinary.'
+    );
+    return;
+  }
+
+  currentProductForUpload = product;
+
+  // Inicializar widget de Cloudinary
+  if (!cloudinaryWidget) {
+    cloudinaryWidget = cloudinary.createUploadWidget(
+      {
+        cloudName: CLOUDINARY_CONFIG.cloudName,
+        uploadPreset: CLOUDINARY_CONFIG.uploadPreset,
+        sources: ['local', 'camera', 'url'],
+        multiple: false,
+        maxFiles: 1,
+        maxFileSize: 5000000, // 5MB
+        clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
+        folder: 'searys-store/products',
+        cropping: true,
+        croppingAspectRatio: 1,
+        croppingDefaultSelectionRatio: 1,
+        croppingShowDimensions: true,
+        showSkipCropButton: false,
+        language: 'es',
+        text: {
+          es: {
+            or: 'o',
+            back: 'Atrás',
+            advanced: 'Avanzado',
+            close: 'Cerrar',
+            no_results: 'Sin resultados',
+            search_placeholder: 'Buscar archivos',
+            about_uw: 'Acerca del widget',
+            menu: {
+              files: 'Mis Archivos',
+              web: 'Web',
+              camera: 'Cámara',
+            },
+            local: {
+              browse: 'Explorar',
+              dd_title_single: 'Arrastra una imagen aquí',
+              dd_title_multi: 'Arrastra imágenes aquí',
+              drop_title_single: 'Suelta para subir',
+              drop_title_multiple: 'Suelta para subir',
+            },
+            camera: {
+              capture: 'Capturar',
+              cancel: 'Cancelar',
+              take_pic: 'Tomar una foto',
+              explanation:
+                'Asegúrate de que tu navegador permita el acceso a la cámara',
+            },
+            crop: {
+              title: 'Recortar',
+              crop_btn: 'Recortar y Continuar',
+              skip_btn: 'Omitir',
+              reset_btn: 'Reiniciar',
+              close_btn: 'Sí',
+              close_prompt: '¿Cerrar sin guardar cambios?',
+              image_error: 'Error cargando imagen',
+            },
+          },
+        },
+      },
+      async (error, result) => {
+        if (!error && result && result.event === 'success') {
+          log.success('Imagen subida a Cloudinary');
+
+          const imageUrl = result.info.secure_url;
+
+          // Guardar URL en Supabase
+          await saveProductImage(currentProductForUpload.id, imageUrl);
+        }
+
+        if (error) {
+          log.error('Error en Cloudinary: ' + error.message);
+          showToast('Error al subir imagen', 'error');
+        }
+      }
+    );
+  }
+
+  // Abrir widget
+  cloudinaryWidget.open();
+}
+
+// ============================================
+// GUARDAR IMAGEN EN SUPABASE
+// ============================================
+
+async function saveProductImage(productId, imageUrl) {
+  try {
+    log.info(`Guardando imagen para producto ${productId}...`);
+
+    const { data, error } = await tiendaDB
+      .from('products')
+      .update({ image_url: imageUrl })
+      .eq('id', productId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    log.success('Imagen guardada en la base de datos');
+    showToast('✅ Imagen subida correctamente', 'success');
+
+    // Actualizar producto en el array local
+    const products = window.tiendaProducts || [];
+    const productIndex = products.findIndex((p) => p.id === productId);
+    if (productIndex !== -1) {
+      products[productIndex].image_url = imageUrl;
+      window.tiendaProducts = products;
+    }
+
+    // Recargar lista de productos sin imagen
+    await loadProductsWithoutImages();
+    
+    // Recargar lista de productos con imagen
+    await loadProductsWithImages();
+
+    // Re-renderizar productos en la tienda
+    if (typeof renderProducts === 'function') {
+      renderProducts();
+    }
+  } catch (error) {
+    log.error('Error guardando imagen: ' + error.message);
+    showToast('❌ Error al guardar imagen', 'error');
+  }
+}
+
+// ============================================
+// GESTIÓN DE CATEGORÍAS
+// ============================================
+
+async function assignProductCategory(productId, category) {
+  try {
+    const { error } = await tiendaDB
+      .from('products')
+      .update({ category: category })
+      .eq('id', productId);
+
+    if (error) throw error;
+
+    log.success(`Categoría asignada al producto ${productId}`);
+    showToast('Categoría actualizada', 'success');
+
+    // Actualizar en el array local
+    const products = window.tiendaProducts || [];
+    const productIndex = products.findIndex((p) => p.id === productId);
+    if (productIndex !== -1) {
+      products[productIndex].category = category;
+      window.tiendaProducts = products;
+    }
+  } catch (error) {
+    log.error('Error asignando categoría: ' + error.message);
+    showToast('Error al asignar categoría', 'error');
+  }
+}
+
+// ============================================
+// ACTUALIZAR STOCK DESDE ADMIN
+// ============================================
+
+async function updateProductStock(productId, newStock) {
+  try {
+    const { error } = await tiendaDB
+      .from('products')
+      .update({ quantity: newStock })
+      .eq('id', productId);
+
+    if (error) throw error;
+
+    log.success(`Stock actualizado para producto ${productId}`);
+    showToast('Stock actualizado', 'success');
+
+    // Actualizar en el array local
+    const products = window.tiendaProducts || [];
+    const productIndex = products.findIndex((p) => p.id === productId);
+    if (productIndex !== -1) {
+      products[productIndex].quantity = newStock;
+      window.tiendaProducts = products;
+    }
+
+    // Re-renderizar productos
+    if (typeof renderProducts === 'function') {
+      renderProducts();
+    }
+  } catch (error) {
+    log.error('Error actualizando stock: ' + error.message);
+    showToast('Error al actualizar stock', 'error');
+  }
+}
+
+// ============================================
+// CARGAR PRODUCTOS CON IMAGEN
+// ============================================
+
+async function loadProductsWithImages() {
+  const container = document.getElementById('productsWithImages');
+  if (!container) return;
+
+  container.innerHTML =
+    '<div style="text-align: center; padding: 2rem;"><div class="spinner"></div><p>Cargando...</p></div>';
+
+  try {
+    // Recargar productos
+    await loadTiendaProducts();
+
+    const products = window.tiendaProducts || [];
+    const withImages = products.filter((p) => p.image_url);
+
+    if (withImages.length === 0) {
+      container.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--gray-500);">
+                    <i class="fas fa-images" style="font-size: 3rem; margin-bottom: 1rem; color: var(--gray-400);"></i>
+                    <h4>No hay productos con imagen</h4>
+                    <p>Sube imágenes desde la sección anterior</p>
+                </div>
+            `;
+      return;
+    }
+
+    container.innerHTML = '';
+
+    withImages.forEach((product) => {
+      const row = createProductRowWithImage(product);
+      container.appendChild(row);
+    });
+  } catch (error) {
+    log.error('Error cargando productos: ' + error.message);
+    container.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: var(--error);">
+                <i class="fas fa-exclamation-circle" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                <p>Error al cargar productos</p>
             </div>
-          </div>
-          
-          <div class="admin-section" style="margin-top: 2rem;">
-            <h3>Todos los Productos con Imagen</h3>
-            <p class="admin-help">
-              <i class="fas fa-info-circle"></i>
-              Haz clic en "Cambiar Imagen" para actualizar la foto de un producto
-            </p>
-            <div class="products-with-images" id="productsWithImages">
-              <!-- Se llena dinámicamente -->
+        `;
+  }
+}
+
+function createProductRowWithImage(product) {
+  const row = document.createElement('div');
+  row.className = 'product-row-with-image';
+  row.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+  `;
+
+  const imageUrl = product.image_url || 'https://via.placeholder.com/80x80?text=Sin+Imagen';
+
+  row.innerHTML = `
+        <img 
+            src="${imageUrl}" 
+            alt="${product.name}" 
+            style="
+                width: 80px; 
+                height: 80px; 
+                object-fit: cover; 
+                border-radius: 8px;
+                border: 2px solid var(--gray-200);
+            "
+            onerror="this.src='https://via.placeholder.com/80x80?text=Error'"
+        >
+        <div style="flex: 1;">
+            <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 0.25rem;">
+                ${product.name}
             </div>
-          </div>
-        </div>
-
-        <!-- TAB: Imágenes -->
-        <div class="admin-tab-content" id="tabImages">
-          <div class="admin-section">
-            <h3>Subir Imágenes a Cloudinary</h3>
-            <p class="admin-help">
-              <i class="fas fa-info-circle"></i>
-              Las imágenes se almacenan en Cloudinary para no sobrecargar la
-              base de datos
-            </p>
-
-            <div class="upload-instructions">
-              <h4>Configuración de Cloudinary:</h4>
-              <ol>
-                <li>
-                  Crea una cuenta gratis en
-                  <a href="https://cloudinary.com" target="_blank"
-                    >cloudinary.com</a
-                  >
-                </li>
-                <li>Ve a Settings → Upload → Upload Presets</li>
-                <li>Crea un nuevo preset con modo "Unsigned"</li>
-                <li>Copia tu Cloud Name y Upload Preset</li>
-                <li>
-                  Edita el archivo <code>tienda-config.js</code> con tus datos
-                </li>
-              </ol>
-
-              <div class="cloudinary-status" id="cloudinaryStatus">
-                <!-- Estado de configuración -->
-              </div>
+            <div style="font-size: 0.875rem; color: var(--gray-600);">
+                ${formatPrice(product.sale_price)} | Stock: ${product.quantity}
             </div>
-          </div>
         </div>
-      </div>
-    </div>
+        <button 
+            class="change-image-btn" 
+            data-product-id="${product.id}"
+            style="
+                background: var(--primary);
+                color: white;
+                border: none;
+                padding: 0.625rem 1.25rem;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                white-space: nowrap;
+            "
+            onmouseover="this.style.background='var(--primary-dark)'"
+            onmouseout="this.style.background='var(--primary)'"
+        >
+            <i class="fas fa-sync-alt"></i>
+            Cambiar Imagen
+        </button>
+    `;
 
-    <!-- NOTIFICACIÓN TOAST -->
-    <div class="toast" id="toast">
-      <i class="fas fa-check-circle"></i>
-      <span id="toastMessage"></span>
-    </div>
+  const changeBtn = row.querySelector('.change-image-btn');
+  changeBtn.addEventListener('click', () => {
+    openCloudinaryUpload(product);
+  });
 
-    <!-- Scripts -->
-    <script src="tienda-config.js"></script>
-    <script src="tienda-admin.js"></script>
-    <script src="tienda-cart.js"></script>
-    <script src="tienda-main.js"></script>
-  </body>
-</html>
+  return row;
+}
+
+// ============================================
+// EXPORTAR FUNCIONES
+// ============================================
+
+window.loadAdminData = loadAdminData;
+window.loadProductsWithImages = loadProductsWithImages;
+window.openCloudinaryUpload = openCloudinaryUpload;
+window.saveProductImage = saveProductImage;
+window.assignProductCategory = assignProductCategory;
+window.updateProductStock = updateProductStock;
+
+log.success('tienda-admin.js cargado');
