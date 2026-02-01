@@ -1,8 +1,10 @@
 // ============================================
-// TIENDA-MAIN.JS - Lógica Principal Mejorada
+// TIENDA-MAIN.JS - Versión Optimizada v2
 // ============================================
 
 let currentProduct = null;
+let isLoadingProducts = false; // Flag para evitar múltiples cargas
+let renderTimeout = null; // Para debouncing
 
 // ============================================
 // INICIALIZACIÓN
@@ -16,13 +18,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         initTiendaDB();
     }
     
-    // 🔐 Verificar acceso admin desde URL y actualizar UI
-    const hasAdminAccess = checkAdminAccess();
-    
-    // 🔐 Mostrar confirmación si está autenticado
-    if (hasAdminAccess && isAdminAuthenticated()) {
-        log.success('✅ Modo administrador activado');
-    }
+    // Verificar acceso admin desde URL
+    checkAdminAccess();
     
     // Cargar carrito guardado
     loadTiendaCart();
@@ -47,25 +44,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 // CATEGORÍAS CON MINIATURAS
 // ============================================
 
-// Guardar miniaturas de categorías en localStorage
 function saveCategoryThumbnails(categoryThumbnails) {
     localStorage.setItem('searys_category_thumbnails', JSON.stringify(categoryThumbnails));
-    log.info('Miniaturas de categorías guardadas');
 }
 
-// Cargar miniaturas de categorías desde localStorage
 function loadCategoryThumbnails() {
     const saved = localStorage.getItem('searys_category_thumbnails');
     if (saved) {
         window.categoryThumbnails = JSON.parse(saved);
-        log.info('Miniaturas de categorías cargadas');
     } else {
         window.categoryThumbnails = {};
     }
     return window.categoryThumbnails;
 }
 
-// Actualizar miniatura de categoría
 function updateCategoryThumbnail(categoryName, imageUrl) {
     if (!window.categoryThumbnails) {
         window.categoryThumbnails = {};
@@ -95,14 +87,26 @@ function renderCategories() {
             item.classList.add('active');
         }
         
-        // Imagen de miniatura (usa placeholder si no tiene)
         const thumbnailUrl = thumbnails[cat] || 'https://via.placeholder.com/100x100?text=' + encodeURIComponent(cat);
         
-        item.innerHTML = `
-            <img src="${thumbnailUrl}" alt="${cat}" class="category-thumbnail" onerror="this.src='https://via.placeholder.com/100x100?text=${encodeURIComponent(cat)}'">
-            <div class="category-name">${cat}</div>
-        `;
+        const img = document.createElement('img');
+        img.src = thumbnailUrl;
+        img.alt = cat;
+        img.className = 'category-thumbnail';
+        img.onerror = function() {
+            // Prevenir bucle: solo intentar una vez
+            if (this.src !== 'https://via.placeholder.com/100x100?text=' + encodeURIComponent(cat)) {
+                this.onerror = null;
+                this.src = 'https://via.placeholder.com/100x100?text=' + encodeURIComponent(cat);
+            }
+        };
         
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'category-name';
+        nameDiv.textContent = cat;
+        
+        item.appendChild(img);
+        item.appendChild(nameDiv);
         item.addEventListener('click', () => selectCategory(cat));
         categoriesGallery.appendChild(item);
     });
@@ -120,8 +124,8 @@ function selectCategory(category) {
         }
     });
     
-    // Re-renderizar productos
-    renderProducts();
+    // Re-renderizar productos con debounce
+    debouncedRenderProducts();
 }
 
 // ============================================
@@ -129,26 +133,29 @@ function selectCategory(category) {
 // ============================================
 
 async function loadAndRenderProducts() {
+    if (isLoadingProducts) {
+        log.warn('Ya se están cargando productos, evitando carga duplicada');
+        return;
+    }
+    
+    isLoadingProducts = true;
     const loadingState = document.getElementById('loadingState');
     const productsGrid = document.getElementById('productsGrid');
     const emptyState = document.getElementById('emptyState');
     
-    if (loadingState) loadingState.style.display = 'block';
-    if (productsGrid) productsGrid.style.display = 'none';
-    if (emptyState) emptyState.style.display = 'none';
-    
     try {
-        // Timeout de 10 segundos para evitar carga infinita
+        if (loadingState) loadingState.style.display = 'block';
+        if (productsGrid) productsGrid.style.display = 'none';
+        if (emptyState) emptyState.style.display = 'none';
+        
         const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout: La conexión tardó demasiado')), 10000)
+            setTimeout(() => reject(new Error('Timeout: La conexión tardó demasiado')), 8000)
         );
         
         const products = await Promise.race([
             loadTiendaProducts(),
             timeoutPromise
         ]);
-        
-        if (loadingState) loadingState.style.display = 'none';
         
         if (products && products.length > 0) {
             renderProducts(products);
@@ -164,7 +171,7 @@ async function loadAndRenderProducts() {
         }
     } catch (error) {
         log.error('Error cargando productos: ' + error.message);
-        if (loadingState) loadingState.style.display = 'none';
+        
         if (emptyState) {
             emptyState.style.display = 'block';
             const emptyText = emptyState.querySelector('p');
@@ -173,6 +180,10 @@ async function loadAndRenderProducts() {
             }
         }
         showToast('Error al cargar productos. Revisa la consola.', 'error');
+    } finally {
+        // SIEMPRE ocultar loading state
+        if (loadingState) loadingState.style.display = 'none';
+        isLoadingProducts = false;
     }
 }
 
@@ -225,45 +236,75 @@ function createProductCard(product) {
     const imageUrl = product.image_url || 'https://via.placeholder.com/300x300?text=Sin+Imagen';
     const isOutOfStock = product.quantity <= 0;
     
-    // Agregar clase si está agotado
     if (isOutOfStock) {
         card.classList.add('out-of-stock');
     }
     
-    card.innerHTML = `
-        <img src="${imageUrl}" alt="${product.name}" class="product-image" onerror="this.src='https://via.placeholder.com/300x300?text=Sin+Imagen'">
-        <div class="product-card-body">
-            <h3 class="product-name">${product.name}</h3>
-            <div class="product-stock ${isOutOfStock ? 'stock-empty' : ''}">
-                <i class="fas ${isOutOfStock ? 'fa-times-circle' : 'fa-box'}"></i>
-                <span>${isOutOfStock ? 'Agotado' : `${product.quantity} disponibles`}</span>
-            </div>
-            <div class="product-price-row">
-                <div class="product-price">${formatPrice(product.sale_price)}</div>
-                <button class="add-to-cart-btn" title="${isOutOfStock ? 'Producto agotado' : 'Agregar al carrito'}" ${isOutOfStock ? 'disabled' : ''}>
-                    ${isOutOfStock ? 'Agotado' : 'Agregar'}
-                </button>
-            </div>
-        </div>
-    `;
+    // Crear imagen con manejo de error seguro
+    const productImage = document.createElement('img');
+    productImage.className = 'product-image';
+    productImage.alt = product.name;
+    productImage.src = imageUrl;
+    productImage.onerror = function() {
+        // Prevenir bucle: solo intentar una vez
+        if (this.src !== 'https://via.placeholder.com/300x300?text=Sin+Imagen') {
+            this.onerror = null;
+            this.src = 'https://via.placeholder.com/300x300?text=Sin+Imagen';
+        }
+    };
     
-    // Click en la imagen abre visor de imagen
-    const productImage = card.querySelector('.product-image');
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'product-info';
+    
+    const nameH3 = document.createElement('h3');
+    nameH3.className = 'product-name';
+    nameH3.textContent = product.name;
+    
+    const priceDiv = document.createElement('div');
+    priceDiv.className = 'product-price';
+    priceDiv.textContent = formatPrice(product.sale_price);
+    
+    const stockDiv = document.createElement('div');
+    stockDiv.className = 'product-stock';
+    stockDiv.innerHTML = `<i class="fas fa-box"></i> ${isOutOfStock ? 'Agotado' : product.quantity + ' disponibles'}`;
+    
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-to-cart-btn';
+    addBtn.disabled = isOutOfStock;
+    addBtn.innerHTML = '<i class="fas fa-cart-plus"></i> Agregar';
+    
+    // Event listeners sin inline handlers
     productImage.addEventListener('click', (e) => {
         e.stopPropagation();
-        openImageViewer(imageUrl, product.name);
+        openProductModal(product);
     });
     
-    // Click en el botón de agregar (solo si hay stock)
     if (!isOutOfStock) {
-        const addBtn = card.querySelector('.add-to-cart-btn');
         addBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             addToCart(product, 1);
         });
     }
     
+    infoDiv.appendChild(nameH3);
+    infoDiv.appendChild(priceDiv);
+    infoDiv.appendChild(stockDiv);
+    infoDiv.appendChild(addBtn);
+    
+    card.appendChild(productImage);
+    card.appendChild(infoDiv);
+    
     return card;
+}
+
+// Debounce para evitar renders excesivos
+function debouncedRenderProducts() {
+    if (renderTimeout) {
+        clearTimeout(renderTimeout);
+    }
+    renderTimeout = setTimeout(() => {
+        renderProducts();
+    }, 150);
 }
 
 // ============================================
@@ -281,18 +322,22 @@ function openProductModal(product) {
     const modalDescription = document.getElementById('modalProductDescription');
     const modalQty = document.getElementById('modalQty');
     
-    if (!modal) return;
-    
-    if (modalImage) modalImage.src = product.image_url || 'https://via.placeholder.com/400x400?text=Sin+Imagen';
+    if (modalImage) {
+        modalImage.src = product.image_url || 'https://via.placeholder.com/500x500?text=Sin+Imagen';
+        modalImage.onerror = function() {
+            if (this.src !== 'https://via.placeholder.com/500x500?text=Sin+Imagen') {
+                this.onerror = null;
+                this.src = 'https://via.placeholder.com/500x500?text=Sin+Imagen';
+            }
+        };
+    }
     if (modalName) modalName.textContent = product.name;
     if (modalPrice) modalPrice.textContent = formatPrice(product.sale_price);
     if (modalStock) modalStock.textContent = product.quantity;
-    if (modalDescription) {
-        modalDescription.textContent = product.description || 'Sin descripción disponible';
-    }
+    if (modalDescription) modalDescription.textContent = product.description || 'Sin descripción';
     if (modalQty) modalQty.value = 1;
     
-    modal.classList.add('active');
+    if (modal) modal.classList.add('active');
 }
 
 function closeProductModalFunc() {
@@ -302,74 +347,10 @@ function closeProductModalFunc() {
 }
 
 // ============================================
-// VISOR DE IMAGEN SIMPLE
-// ============================================
-
-function openImageViewer(imageUrl, productName) {
-    // Crear el visor si no existe
-    let viewer = document.getElementById('imageViewer');
-    
-    if (!viewer) {
-        viewer = document.createElement('div');
-        viewer.id = 'imageViewer';
-        viewer.className = 'image-viewer';
-        viewer.innerHTML = `
-            <div class="image-viewer-overlay"></div>
-            <div class="image-viewer-content">
-                <button class="image-viewer-close" aria-label="Cerrar">
-                    <i class="fas fa-times"></i>
-                </button>
-                <img class="image-viewer-img" src="" alt="">
-                <div class="image-viewer-name"></div>
-            </div>
-        `;
-        document.body.appendChild(viewer);
-        
-        // Cerrar al hacer clic en el overlay o botón
-        viewer.querySelector('.image-viewer-overlay').addEventListener('click', closeImageViewer);
-        viewer.querySelector('.image-viewer-close').addEventListener('click', closeImageViewer);
-        
-        // Cerrar con ESC
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && viewer.classList.contains('active')) {
-                closeImageViewer();
-            }
-        });
-    }
-    
-    // Actualizar imagen y mostrar
-    const img = viewer.querySelector('.image-viewer-img');
-    const name = viewer.querySelector('.image-viewer-name');
-    
-    if (img) img.src = imageUrl;
-    if (name) name.textContent = productName;
-    
-    viewer.classList.add('active');
-    document.body.style.overflow = 'hidden'; // Evitar scroll del body
-}
-
-function closeImageViewer() {
-    const viewer = document.getElementById('imageViewer');
-    if (viewer) {
-        viewer.classList.remove('active');
-        document.body.style.overflow = ''; // Restaurar scroll
-    }
-}
-
-// ============================================
 // EVENT LISTENERS
 // ============================================
 
 function setupEventListeners() {
-    // Cerrar modales con ESC
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            closeProductModalFunc();
-            closeAdminPanelFunc();
-            closeCartFunc();
-        }
-    });
-    
     // Carrito
     const cartBtn = document.getElementById('cartBtn');
     const closeCart = document.getElementById('closeCart');
@@ -385,11 +366,14 @@ function setupEventListeners() {
         cartOverlay.addEventListener('click', closeCartFunc);
     }
     
-    // Búsqueda
+    // Búsqueda con debounce
     const searchInput = document.getElementById('searchInput');
-    
     if (searchInput) {
-        searchInput.addEventListener('input', handleSearch);
+        let searchTimeout;
+        searchInput.addEventListener('input', () => {
+            if (searchTimeout) clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(handleSearch, 300);
+        });
     }
     
     // Modal de producto
@@ -403,37 +387,37 @@ function setupEventListeners() {
     const modalQtyPlus = document.getElementById('modalQtyPlus');
     const modalQty = document.getElementById('modalQty');
     
-    if (modalQtyMinus) {
+    if (modalQtyMinus && modalQty) {
         modalQtyMinus.addEventListener('click', () => {
-            const current = parseInt(modalQty.value) || 1;
-            if (current > 1) {
-                modalQty.value = current - 1;
+            let qty = parseInt(modalQty.value);
+            if (qty > 1) {
+                modalQty.value = qty - 1;
             }
         });
     }
     
-    if (modalQtyPlus) {
+    if (modalQtyPlus && modalQty && currentProduct) {
         modalQtyPlus.addEventListener('click', () => {
-            const current = parseInt(modalQty.value) || 1;
-            if (currentProduct && current < currentProduct.quantity) {
-                modalQty.value = current + 1;
+            let qty = parseInt(modalQty.value);
+            if (currentProduct && qty < currentProduct.quantity) {
+                modalQty.value = qty + 1;
             }
         });
     }
     
     // Agregar al carrito desde modal
     const modalAddToCart = document.getElementById('modalAddToCart');
-    if (modalAddToCart) {
+    if (modalAddToCart && modalQty) {
         modalAddToCart.addEventListener('click', () => {
             if (currentProduct) {
-                const qty = parseInt(modalQty.value) || 1;
+                const qty = parseInt(modalQty.value);
                 addToCart(currentProduct, qty);
                 closeProductModalFunc();
             }
         });
     }
     
-    // Admin
+    // Admin panel
     const adminBtn = document.getElementById('adminBtn');
     const closeAdminModal = document.getElementById('closeAdminModal');
     
@@ -444,12 +428,11 @@ function setupEventListeners() {
         closeAdminModal.addEventListener('click', closeAdminPanelFunc);
     }
     
-    // Tabs de admin
-    const adminTabs = document.querySelectorAll('.admin-tab');
-    adminTabs.forEach(tab => {
+    // Admin tabs
+    document.querySelectorAll('.admin-tab').forEach(tab => {
         tab.addEventListener('click', () => {
-            const targetTab = tab.dataset.tab;
-            switchAdminTab(targetTab);
+            const tabName = tab.dataset.tab;
+            switchAdminTab(tabName);
         });
     });
 }
@@ -458,14 +441,12 @@ function handleSearch() {
     const searchInput = document.getElementById('searchInput');
     const searchTerm = searchInput.value.toLowerCase().trim();
     
-    // Si la búsqueda está vacía, mostrar categoría seleccionada
-    // Si hay búsqueda, ignorar filtro de categoría
     if (searchTerm) {
         window.selectedCategory = 'Todos';
         renderCategories();
     }
     
-    renderProducts();
+    debouncedRenderProducts();
 }
 
 function openCart() {
@@ -506,7 +487,6 @@ function closeAdminPanelFunc() {
 }
 
 function switchAdminTab(tabName) {
-    // Actualizar tabs
     document.querySelectorAll('.admin-tab').forEach(tab => {
         tab.classList.remove('active');
         if (tab.dataset.tab === tabName) {
@@ -514,7 +494,6 @@ function switchAdminTab(tabName) {
         }
     });
     
-    // Actualizar contenido
     document.querySelectorAll('.admin-tab-content').forEach(content => {
         content.classList.remove('active');
     });
@@ -524,7 +503,6 @@ function switchAdminTab(tabName) {
         targetContent.classList.add('active');
     }
     
-    // Si es la pestaña de categorías, cargar gestión de categorías
     if (tabName === 'categories') {
         loadCategoriesManagement();
     }
@@ -550,22 +528,39 @@ function loadCategoriesManagement() {
         const thumbnailUrl = thumbnails[cat] || 'https://via.placeholder.com/80x80?text=' + encodeURIComponent(cat);
         const hasImage = !!thumbnails[cat];
         
-        row.innerHTML = `
-            <img src="${thumbnailUrl}" alt="${cat}" class="category-row-thumbnail" onerror="this.src='https://via.placeholder.com/80x80?text=${encodeURIComponent(cat)}'">
-            <div class="category-row-info">
-                <div class="category-row-name">${cat}</div>
-                <div class="category-row-status">
-                    ${hasImage ? '✅ Miniatura configurada' : '⚠️ Sin miniatura'}
-                </div>
-            </div>
-            <button class="category-upload-btn ${hasImage ? 'has-image' : ''}" data-category="${cat}">
-                <i class="fas fa-${hasImage ? 'sync' : 'upload'}"></i>
-                ${hasImage ? 'Cambiar Imagen' : 'Subir Imagen'}
-            </button>
-        `;
+        const img = document.createElement('img');
+        img.src = thumbnailUrl;
+        img.alt = cat;
+        img.className = 'category-row-thumbnail';
+        img.onerror = function() {
+            if (this.src !== 'https://via.placeholder.com/80x80?text=' + encodeURIComponent(cat)) {
+                this.onerror = null;
+                this.src = 'https://via.placeholder.com/80x80?text=' + encodeURIComponent(cat);
+            }
+        };
         
-        const uploadBtn = row.querySelector('.category-upload-btn');
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'category-row-info';
+        
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'category-row-name';
+        nameDiv.textContent = cat;
+        
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'category-row-status';
+        statusDiv.textContent = hasImage ? '✅ Miniatura configurada' : '⚠️ Sin miniatura';
+        
+        const uploadBtn = document.createElement('button');
+        uploadBtn.className = `category-upload-btn ${hasImage ? 'has-image' : ''}`;
+        uploadBtn.innerHTML = `<i class="fas fa-${hasImage ? 'sync' : 'upload'}"></i> ${hasImage ? 'Cambiar Imagen' : 'Subir Imagen'}`;
         uploadBtn.addEventListener('click', () => uploadCategoryImage(cat));
+        
+        infoDiv.appendChild(nameDiv);
+        infoDiv.appendChild(statusDiv);
+        
+        row.appendChild(img);
+        row.appendChild(infoDiv);
+        row.appendChild(uploadBtn);
         
         container.appendChild(row);
     });
@@ -585,7 +580,7 @@ function uploadCategoryImage(categoryName) {
             multiple: false,
             resourceType: 'image',
             clientAllowedFormats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-            maxFileSize: 5000000, // 5MB
+            maxFileSize: 5000000,
             cropping: true,
             croppingAspectRatio: 1,
             croppingShowDimensions: true,
@@ -600,7 +595,7 @@ function uploadCategoryImage(categoryName) {
             if (result.event === 'success') {
                 const imageUrl = result.info.secure_url;
                 updateCategoryThumbnail(categoryName, imageUrl);
-                loadCategoriesManagement(); // Recargar la vista
+                loadCategoriesManagement();
                 showToast(`✅ Miniatura actualizada para ${categoryName}`, 'success');
             }
         }
@@ -686,4 +681,4 @@ window.updateCategoryThumbnail = updateCategoryThumbnail;
 window.loadCategoriesManagement = loadCategoriesManagement;
 window.renderCategories = renderCategories;
 
-log.success('tienda-main.js cargado');
+log.success('tienda-main.js v2 cargado - Optimizado para evitar bucles y parpadeos');
