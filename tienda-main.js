@@ -19,14 +19,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 🔐 Verificar acceso admin desde URL y actualizar UI
     const hasAdminAccess = checkAdminAccess();
     
-    // 🔐 Mostrar/ocultar controles de admin
-    setTimeout(() => {
-        toggleAdminUI();
-        
-        if (hasAdminAccess && isAdminAuthenticated()) {
-            log.success('✅ Modo administrador activado');
-        }
-    }, 100);
+    // 🔐 Mostrar confirmación si está autenticado
+    if (hasAdminAccess && isAdminAuthenticated()) {
+        log.success('✅ Modo administrador activado');
+    }
     
     // Cargar carrito guardado
     loadTiendaCart();
