@@ -5,6 +5,26 @@
 let cloudinaryWidget = null;
 let currentProductForUpload = null;
 
+
+// ============================================
+// FUNCIÓN OPTIMIZADA PARA REFRESCAR PRODUCTOS
+// ============================================
+
+async function refreshProductLists() {
+  // Una sola carga de productos desde la base de datos
+  await loadTiendaProducts();
+  
+  // Actualizar ambas listas en paralelo sin recargar la base de datos
+  await Promise.all([
+    loadProductsWithoutImages(),
+    loadProductsWithImages()
+  ]);
+  
+  // Re-renderizar productos en la tienda
+  if (typeof renderProducts === 'function') {
+    renderProducts();
+  }
+}
 // ============================================
 // CARGAR DATOS DEL ADMIN
 // ============================================
@@ -275,16 +295,8 @@ async function saveProductImage(productId, imageUrl) {
       window.tiendaProducts = products;
     }
 
-    // Recargar lista de productos sin imagen
-    await loadProductsWithoutImages();
-    
-    // Recargar lista de productos con imagen
-    await loadProductsWithImages();
-
-    // Re-renderizar productos en la tienda
-    if (typeof renderProducts === 'function') {
-      renderProducts();
-    }
+    // Usar función optimizada para refrescar listas
+    await refreshProductLists();
   } catch (error) {
     log.error('Error guardando imagen: ' + error.message);
     showToast('❌ Error al guardar imagen', 'error');
@@ -481,5 +493,6 @@ window.openCloudinaryUpload = openCloudinaryUpload;
 window.saveProductImage = saveProductImage;
 window.assignProductCategory = assignProductCategory;
 window.updateProductStock = updateProductStock;
+window.refreshProductLists = refreshProductLists;
 
 log.success('tienda-admin.js cargado');
