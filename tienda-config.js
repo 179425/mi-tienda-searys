@@ -162,9 +162,7 @@ function checkAdminAccess() {
       }
       
       // Actualizar UI de admin
-      setTimeout(() => {
-        toggleAdminUI();
-      }, 100);
+      toggleAdminUI(); // Una sola llamada, sin setTimeout
       
       return true;
     } else {
