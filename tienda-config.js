@@ -1,33 +1,32 @@
 // ============================================
-// TIENDA-CONFIG.JS - Configuración de la Tienda Virtual
+// TIENDA-CONFIG.JS - Versión Optimizada v2
 // ============================================
 
-// Configuración de Supabase (misma que tu app de recepción)
+// Configuración de Supabase
 const SUPABASE_URL = 'https://megjcvscblwxikirqchw.supabase.co';
 const SUPABASE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lZ2pjdnNjYmx3eGlraXJxY2h3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzNDE4OTQsImV4cCI6MjA3ODkxNzg5NH0.Kd9ZdnUf5hF92B84vh3RUA00vsR5ohbFjHkqRp645QA';
 
-// Configuración de Cloudinary - ✅ YA CONFIGURADO
+// Configuración de Cloudinary
 const CLOUDINARY_CONFIG = {
   cloudName: 'dgjsxjxmm',
   uploadPreset: 'searys-store',
   apiKey: '',
 };
 
-// 🔐 CONFIGURACIÓN DE ACCESO ADMIN
-// ⚠️ CAMBIA ESTA CLAVE POR UNA PROPIA Y MANTENLA SECRETA
+// Configuración de acceso admin
 const ADMIN_CONFIG = {
-  secretKey: 'searys2025admin', // Cambia esto por tu propia clave secreta
-  sessionDuration: 24 * 60 * 60 * 1000, // 24 horas en milisegundos
+  secretKey: 'searys2025admin',
+  sessionDuration: 24 * 60 * 60 * 1000,
 };
 
 // Configuración de la tienda
 const TIENDA_CONFIG = {
   nombre: 'SeArys Store',
-  whatsappNumber: '573173404951', // ✅ Tu número de Colombia
+  whatsappNumber: '573173404951',
   moneda: 'COP',
-  iva: 19, // Porcentaje de IVA por defecto
-  envioGratis: 50000, // Pedidos mayores a este valor tienen envío gratis
+  iva: 19,
+  envioGratis: 50000,
   costoEnvio: 5000,
   colores: {
     primario: '#4f46e5',
@@ -74,10 +73,9 @@ window.tiendaCategories = TIENDA_CONFIG.categorias;
 window.selectedCategory = 'Todos';
 
 // ============================================
-// 🔐 FUNCIONES DE AUTENTICACIÓN ADMIN
+// FUNCIONES DE AUTENTICACIÓN ADMIN
 // ============================================
 
-// Verificar si hay sesión admin activa
 function isAdminAuthenticated() {
   const session = sessionStorage.getItem('searys_admin_session');
   if (!session) return false;
@@ -86,11 +84,9 @@ function isAdminAuthenticated() {
     const sessionData = JSON.parse(session);
     const now = new Date().getTime();
 
-    // Verificar si la sesión no ha expirado
     if (now < sessionData.expiry) {
       return true;
     } else {
-      // Sesión expirada, limpiar
       sessionStorage.removeItem('searys_admin_session');
       return false;
     }
@@ -99,7 +95,6 @@ function isAdminAuthenticated() {
   }
 }
 
-// Autenticar admin con clave secreta
 function authenticateAdmin(secretKey) {
   if (secretKey === ADMIN_CONFIG.secretKey) {
     const expiry = new Date().getTime() + ADMIN_CONFIG.sessionDuration;
@@ -116,59 +111,42 @@ function authenticateAdmin(secretKey) {
   return false;
 }
 
-// Cerrar sesión admin
 function logoutAdmin() {
   sessionStorage.removeItem('searys_admin_session');
   log.info('🔒 Sesión admin cerrada');
 
-  // Ocultar botones de admin
-  const adminBtn = document.getElementById('adminBtn');
-  const logoutBtn = document.getElementById('logoutAdminBtn');
-  
-  if (adminBtn) {
-    adminBtn.style.display = 'none';
-  }
-  
-  if (logoutBtn) {
-    logoutBtn.style.display = 'none';
-  }
+  toggleAdminUI();
 
-  // Cerrar modal de admin si está abierto
   const adminModal = document.getElementById('adminModal');
   if (adminModal && adminModal.classList.contains('active')) {
     adminModal.classList.remove('active');
   }
 
-  // Mostrar toast si la función está disponible
   if (typeof showToast === 'function') {
     showToast('Sesión de administrador cerrada', 'success');
   }
 }
 
-// Verificar URL para activar modo admin
 function checkAdminAccess() {
   const urlParams = new URLSearchParams(window.location.search);
   const adminKey = urlParams.get('admin');
 
   if (adminKey) {
     if (authenticateAdmin(adminKey)) {
-      // Limpiar URL sin recargar la página
       window.history.replaceState({}, document.title, window.location.pathname);
       log.success('🔓 Acceso admin concedido');
       
-      // Mostrar toast si la función ya está disponible
+      // Actualizar UI inmediatamente
+      toggleAdminUI();
+      
       if (typeof showToast === 'function') {
         showToast('Bienvenido Administrador', 'success');
       }
-      
-      // Actualizar UI de admin
-      toggleAdminUI(); // Una sola llamada, sin setTimeout
       
       return true;
     } else {
       log.error('🔒 Clave de admin incorrecta');
       
-      // Mostrar toast si la función ya está disponible
       if (typeof showToast === 'function') {
         showToast('Clave de administrador incorrecta', 'error');
       }
@@ -178,10 +156,11 @@ function checkAdminAccess() {
     }
   }
 
+  // Actualizar UI basado en autenticación existente
+  toggleAdminUI();
   return isAdminAuthenticated();
 }
 
-// Mostrar/ocultar controles de admin según autenticación
 function toggleAdminUI() {
   const adminBtn = document.getElementById('adminBtn');
   const logoutBtn = document.getElementById('logoutAdminBtn');
@@ -199,18 +178,26 @@ function toggleAdminUI() {
 }
 
 // ============================================
-// FUNCIONES ORIGINALES
+// FUNCIONES DE PRODUCTOS
 // ============================================
 
-// Cargar productos desde Supabase
+let isLoadingFromDB = false;
+
 async function loadTiendaProducts() {
+  // Evitar múltiples cargas simultáneas
+  if (isLoadingFromDB) {
+    log.warn('Ya se está cargando productos de la BD');
+    return window.tiendaProducts;
+  }
+
   try {
+    isLoadingFromDB = true;
     log.info('Cargando productos de la tienda...');
 
     const { data, error } = await tiendaDB
       .from('products')
       .select('*')
-      .order('quantity', { ascending: false }) // Primero con stock, luego sin stock
+      .order('quantity', { ascending: false })
       .order('name');
 
     if (error) throw error;
@@ -222,16 +209,15 @@ async function loadTiendaProducts() {
   } catch (error) {
     log.error('Error cargando productos: ' + error.message);
     return [];
+  } finally {
+    isLoadingFromDB = false;
   }
 }
 
-// Guardar carrito en localStorage
 function saveTiendaCart() {
   localStorage.setItem('searys_tienda_cart', JSON.stringify(window.tiendaCart));
-  log.info('Carrito guardado');
 }
 
-// Cargar carrito desde localStorage
 function loadTiendaCart() {
   const saved = localStorage.getItem('searys_tienda_cart');
   if (saved) {
@@ -241,14 +227,12 @@ function loadTiendaCart() {
   return window.tiendaCart;
 }
 
-// Limpiar carrito
 function clearTiendaCart() {
   window.tiendaCart = [];
   localStorage.removeItem('searys_tienda_cart');
   log.info('Carrito limpiado');
 }
 
-// Formatear precio
 function formatPrice(price) {
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -258,9 +242,7 @@ function formatPrice(price) {
   }).format(price);
 }
 
-// Formatear número para WhatsApp
 function formatWhatsAppNumber(number) {
-  // Remover espacios, guiones y paréntesis
   return number.replace(/[\s\-\(\)]/g, '');
 }
 
@@ -285,4 +267,4 @@ window.logoutAdmin = logoutAdmin;
 window.checkAdminAccess = checkAdminAccess;
 window.toggleAdminUI = toggleAdminUI;
 
-log.success('tienda-config.js cargado ✅ CLOUDINARY, WHATSAPP Y SEGURIDAD ADMIN CONFIGURADOS');
+log.success('tienda-config.js v2 cargado - Optimizado');
