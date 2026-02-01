@@ -1,30 +1,42 @@
 // ============================================
-// TIENDA-ADMIN.JS - Panel de Administración
+// TIENDA-ADMIN.JS - Versión Optimizada v2
 // ============================================
 
 let cloudinaryWidget = null;
 let currentProductForUpload = null;
-
+let isLoadingAdminData = false;
 
 // ============================================
 // FUNCIÓN OPTIMIZADA PARA REFRESCAR PRODUCTOS
 // ============================================
 
 async function refreshProductLists() {
-  // Una sola carga de productos desde la base de datos
-  await loadTiendaProducts();
+  if (isLoadingAdminData) {
+    log.warn('Ya se están refrescando las listas');
+    return;
+  }
   
-  // Actualizar ambas listas en paralelo sin recargar la base de datos
-  await Promise.all([
-    loadProductsWithoutImages(),
-    loadProductsWithImages()
-  ]);
-  
-  // Re-renderizar productos en la tienda
-  if (typeof renderProducts === 'function') {
-    renderProducts();
+  try {
+    isLoadingAdminData = true;
+    
+    // Una sola carga de productos desde la base de datos
+    await loadTiendaProducts();
+    
+    // Actualizar ambas listas en paralelo
+    await Promise.all([
+      loadProductsWithoutImages(),
+      loadProductsWithImages()
+    ]);
+    
+    // Re-renderizar productos en la tienda
+    if (typeof renderProducts === 'function') {
+      renderProducts();
+    }
+  } finally {
+    isLoadingAdminData = false;
   }
 }
+
 // ============================================
 // CARGAR DATOS DEL ADMIN
 // ============================================
@@ -32,14 +44,9 @@ async function refreshProductLists() {
 async function loadAdminData() {
   log.info('Cargando datos de administración...');
 
-  // Verificar estado de Cloudinary
   checkCloudinaryConfig();
-
-  // Cargar productos sin imagen
-  await loadProductsWithoutImages();
   
-  // Cargar productos con imagen
-  await loadProductsWithImages();
+  await refreshProductLists();
 }
 
 // ============================================
@@ -58,41 +65,29 @@ function checkCloudinaryConfig() {
 
   if (isConfigured) {
     statusDiv.innerHTML = `
-            <div style="
-                background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-                padding: 1rem;
-                border-radius: 12px;
-                border: 2px solid var(--secondary);
-                margin-top: 1rem;
-            ">
-                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--secondary); font-weight: 700; margin-bottom: 0.5rem;">
-                    <i class="fas fa-check-circle"></i>
-                    Cloudinary Configurado
-                </div>
-                <div style="font-size: 0.9rem; color: var(--gray-700);">
-                    <strong>Cloud Name:</strong> ${CLOUDINARY_CONFIG.cloudName}<br>
-                    <strong>Upload Preset:</strong> ${CLOUDINARY_CONFIG.uploadPreset}
-                </div>
-            </div>
-        `;
+      <div style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); padding: 1rem; border-radius: 12px; border: 2px solid var(--secondary); margin-top: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--secondary); font-weight: 700; margin-bottom: 0.5rem;">
+          <i class="fas fa-check-circle"></i>
+          Cloudinary Configurado
+        </div>
+        <div style="font-size: 0.9rem; color: var(--gray-700);">
+          <strong>Cloud Name:</strong> ${CLOUDINARY_CONFIG.cloudName}<br>
+          <strong>Upload Preset:</strong> ${CLOUDINARY_CONFIG.uploadPreset}
+        </div>
+      </div>
+    `;
   } else {
     statusDiv.innerHTML = `
-            <div style="
-                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-                padding: 1rem;
-                border-radius: 12px;
-                border: 2px solid var(--error);
-                margin-top: 1rem;
-            ">
-                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--error); font-weight: 700; margin-bottom: 0.5rem;">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    Cloudinary NO Configurado
-                </div>
-                <div style="font-size: 0.9rem; color: var(--gray-700);">
-                    Por favor edita <code>tienda-config.js</code> con tus credenciales de Cloudinary
-                </div>
-            </div>
-        `;
+      <div style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); padding: 1rem; border-radius: 12px; border: 2px solid var(--error); margin-top: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--error); font-weight: 700; margin-bottom: 0.5rem;">
+          <i class="fas fa-exclamation-triangle"></i>
+          Cloudinary NO Configurado
+        </div>
+        <div style="font-size: 0.9rem; color: var(--gray-700);">
+          Por favor edita <code>tienda-config.js</code> con tus credenciales de Cloudinary
+        </div>
+      </div>
+    `;
   }
 }
 
@@ -104,24 +99,20 @@ async function loadProductsWithoutImages() {
   const container = document.getElementById('productsWithoutImages');
   if (!container) return;
 
-  container.innerHTML =
-    '<div style="text-align: center; padding: 2rem;"><div class="spinner"></div><p>Cargando...</p></div>';
+  container.innerHTML = '<div style="text-align: center; padding: 2rem;"><div class="spinner"></div><p>Cargando...</p></div>';
 
   try {
-    // Recargar productos
-    await loadTiendaProducts();
-
     const products = window.tiendaProducts || [];
     const withoutImages = products.filter((p) => !p.image_url);
 
     if (withoutImages.length === 0) {
       container.innerHTML = `
-                <div style="text-align: center; padding: 2rem; color: var(--gray-500);">
-                    <i class="fas fa-check-circle" style="font-size: 3rem; margin-bottom: 1rem; color: var(--secondary);"></i>
-                    <h4>¡Excelente!</h4>
-                    <p>Todos los productos tienen imagen</p>
-                </div>
-            `;
+        <div style="text-align: center; padding: 2rem; color: var(--gray-500);">
+          <i class="fas fa-check-circle" style="font-size: 3rem; margin-bottom: 1rem; color: var(--secondary);"></i>
+          <h4>¡Excelente!</h4>
+          <p>Todos los productos tienen imagen</p>
+        </div>
+      `;
       return;
     }
 
@@ -134,11 +125,11 @@ async function loadProductsWithoutImages() {
   } catch (error) {
     log.error('Error cargando productos: ' + error.message);
     container.innerHTML = `
-            <div style="text-align: center; padding: 2rem; color: var(--error);">
-                <i class="fas fa-exclamation-circle" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                <p>Error al cargar productos</p>
-            </div>
-        `;
+      <div style="text-align: center; padding: 2rem; color: var(--error);">
+        <i class="fas fa-exclamation-circle" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+        <p>Error al cargar productos</p>
+      </div>
+    `;
   }
 }
 
@@ -147,17 +138,15 @@ function createProductRow(product) {
   row.className = 'product-row';
 
   row.innerHTML = `
-        <div class="product-row-info">
-            <div class="product-row-name">${product.name}</div>
-            <div class="product-row-price">${formatPrice(
-              product.sale_price
-            )} | Stock: ${product.quantity}</div>
-        </div>
-        <button class="upload-btn" data-product-id="${product.id}">
-            <i class="fas fa-upload"></i>
-            Subir Imagen
-        </button>
-    `;
+    <div class="product-row-info">
+      <div class="product-row-name">${product.name}</div>
+      <div class="product-row-price">${formatPrice(product.sale_price)} | Stock: ${product.quantity}</div>
+    </div>
+    <button class="upload-btn" data-product-id="${product.id}">
+      <i class="fas fa-upload"></i>
+      Subir Imagen
+    </button>
+  `;
 
   const uploadBtn = row.querySelector('.upload-btn');
   uploadBtn.addEventListener('click', () => {
@@ -179,15 +168,12 @@ function openCloudinaryUpload(product) {
     CLOUDINARY_CONFIG.uploadPreset !== 'TU_UPLOAD_PRESET';
 
   if (!isConfigured) {
-    alert(
-      '⚠️ Cloudinary no está configurado.\n\nPor favor edita el archivo tienda-config.js con tus credenciales de Cloudinary.'
-    );
+    alert('⚠️ Cloudinary no está configurado.\n\nPor favor edita el archivo tienda-config.js con tus credenciales de Cloudinary.');
     return;
   }
 
   currentProductForUpload = product;
 
-  // Inicializar widget de Cloudinary
   if (!cloudinaryWidget) {
     cloudinaryWidget = cloudinary.createUploadWidget(
       {
@@ -196,7 +182,7 @@ function openCloudinaryUpload(product) {
         sources: ['local', 'camera', 'url'],
         multiple: false,
         maxFiles: 1,
-        maxFileSize: 5000000, // 5MB
+        maxFileSize: 5000000,
         clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
         folder: 'searys-store/products',
         cropping: true,
@@ -230,8 +216,7 @@ function openCloudinaryUpload(product) {
               capture: 'Capturar',
               cancel: 'Cancelar',
               take_pic: 'Tomar una foto',
-              explanation:
-                'Asegúrate de que tu navegador permita el acceso a la cámara',
+              explanation: 'Asegúrate de que tu navegador permita el acceso a la cámara',
             },
             crop: {
               title: 'Recortar',
@@ -248,22 +233,17 @@ function openCloudinaryUpload(product) {
       async (error, result) => {
         if (!error && result && result.event === 'success') {
           log.success('Imagen subida a Cloudinary');
-
           const imageUrl = result.info.secure_url;
-
-          // Guardar URL en Supabase
           await saveProductImage(currentProductForUpload.id, imageUrl);
         }
 
         if (error) {
           log.error('Error en Cloudinary: ' + error.message);
-          showToast('Error al subir imagen', 'error');
         }
       }
     );
   }
 
-  // Abrir widget
   cloudinaryWidget.open();
 }
 
@@ -304,69 +284,6 @@ async function saveProductImage(productId, imageUrl) {
 }
 
 // ============================================
-// GESTIÓN DE CATEGORÍAS
-// ============================================
-
-async function assignProductCategory(productId, category) {
-  try {
-    const { error } = await tiendaDB
-      .from('products')
-      .update({ category: category })
-      .eq('id', productId);
-
-    if (error) throw error;
-
-    log.success(`Categoría asignada al producto ${productId}`);
-    showToast('Categoría actualizada', 'success');
-
-    // Actualizar en el array local
-    const products = window.tiendaProducts || [];
-    const productIndex = products.findIndex((p) => p.id === productId);
-    if (productIndex !== -1) {
-      products[productIndex].category = category;
-      window.tiendaProducts = products;
-    }
-  } catch (error) {
-    log.error('Error asignando categoría: ' + error.message);
-    showToast('Error al asignar categoría', 'error');
-  }
-}
-
-// ============================================
-// ACTUALIZAR STOCK DESDE ADMIN
-// ============================================
-
-async function updateProductStock(productId, newStock) {
-  try {
-    const { error } = await tiendaDB
-      .from('products')
-      .update({ quantity: newStock })
-      .eq('id', productId);
-
-    if (error) throw error;
-
-    log.success(`Stock actualizado para producto ${productId}`);
-    showToast('Stock actualizado', 'success');
-
-    // Actualizar en el array local
-    const products = window.tiendaProducts || [];
-    const productIndex = products.findIndex((p) => p.id === productId);
-    if (productIndex !== -1) {
-      products[productIndex].quantity = newStock;
-      window.tiendaProducts = products;
-    }
-
-    // Re-renderizar productos
-    if (typeof renderProducts === 'function') {
-      renderProducts();
-    }
-  } catch (error) {
-    log.error('Error actualizando stock: ' + error.message);
-    showToast('Error al actualizar stock', 'error');
-  }
-}
-
-// ============================================
 // CARGAR PRODUCTOS CON IMAGEN
 // ============================================
 
@@ -374,24 +291,20 @@ async function loadProductsWithImages() {
   const container = document.getElementById('productsWithImages');
   if (!container) return;
 
-  container.innerHTML =
-    '<div style="text-align: center; padding: 2rem;"><div class="spinner"></div><p>Cargando...</p></div>';
+  container.innerHTML = '<div style="text-align: center; padding: 2rem;"><div class="spinner"></div><p>Cargando...</p></div>';
 
   try {
-    // Recargar productos
-    await loadTiendaProducts();
-
     const products = window.tiendaProducts || [];
     const withImages = products.filter((p) => p.image_url);
 
     if (withImages.length === 0) {
       container.innerHTML = `
-                <div style="text-align: center; padding: 2rem; color: var(--gray-500);">
-                    <i class="fas fa-images" style="font-size: 3rem; margin-bottom: 1rem; color: var(--gray-400);"></i>
-                    <h4>No hay productos con imagen</h4>
-                    <p>Sube imágenes desde la sección anterior</p>
-                </div>
-            `;
+        <div style="text-align: center; padding: 2rem; color: var(--gray-500);">
+          <i class="fas fa-images" style="font-size: 3rem; margin-bottom: 1rem; color: var(--gray-400);"></i>
+          <h4>No hay productos con imagen</h4>
+          <p>Sube imágenes desde la sección anterior</p>
+        </div>
+      `;
       return;
     }
 
@@ -404,11 +317,11 @@ async function loadProductsWithImages() {
   } catch (error) {
     log.error('Error cargando productos: ' + error.message);
     container.innerHTML = `
-            <div style="text-align: center; padding: 2rem; color: var(--error);">
-                <i class="fas fa-exclamation-circle" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                <p>Error al cargar productos</p>
-            </div>
-        `;
+      <div style="text-align: center; padding: 2rem; color: var(--error);">
+        <i class="fas fa-exclamation-circle" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+        <p>Error al cargar productos</p>
+      </div>
+    `;
   }
 }
 
@@ -429,56 +342,46 @@ function createProductRowWithImage(product) {
 
   const imageUrl = product.image_url || 'https://via.placeholder.com/80x80?text=Sin+Imagen';
 
-  row.innerHTML = `
-        <img 
-            src="${imageUrl}" 
-            alt="${product.name}" 
-            style="
-                width: 80px; 
-                height: 80px; 
-                object-fit: cover; 
-                border-radius: 8px;
-                border: 2px solid var(--gray-200);
-            "
-            onerror="this.src='https://via.placeholder.com/80x80?text=Error'"
-        >
-        <div style="flex: 1;">
-            <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 0.25rem;">
-                ${product.name}
-            </div>
-            <div style="font-size: 0.875rem; color: var(--gray-600);">
-                ${formatPrice(product.sale_price)} | Stock: ${product.quantity}
-            </div>
-        </div>
-        <button 
-            class="change-image-btn" 
-            data-product-id="${product.id}"
-            style="
-                background: var(--primary);
-                color: white;
-                border: none;
-                padding: 0.625rem 1.25rem;
-                border-radius: 8px;
-                cursor: pointer;
-                font-weight: 600;
-                transition: all 0.3s ease;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                white-space: nowrap;
-            "
-            onmouseover="this.style.background='var(--primary-dark)'"
-            onmouseout="this.style.background='var(--primary)'"
-        >
-            <i class="fas fa-sync-alt"></i>
-            Cambiar Imagen
-        </button>
-    `;
+  const img = document.createElement('img');
+  img.src = imageUrl;
+  img.alt = product.name;
+  img.style.cssText = 'width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid var(--gray-200);';
+  img.onerror = function() {
+    if (this.src !== 'https://via.placeholder.com/80x80?text=Error') {
+      this.onerror = null;
+      this.src = 'https://via.placeholder.com/80x80?text=Error';
+    }
+  };
 
-  const changeBtn = row.querySelector('.change-image-btn');
-  changeBtn.addEventListener('click', () => {
-    openCloudinaryUpload(product);
-  });
+  const infoDiv = document.createElement('div');
+  infoDiv.style.flex = '1';
+  infoDiv.innerHTML = `
+    <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 0.25rem;">${product.name}</div>
+    <div style="font-size: 0.875rem; color: var(--gray-600);">${formatPrice(product.sale_price)} | Stock: ${product.quantity}</div>
+  `;
+
+  const changeBtn = document.createElement('button');
+  changeBtn.className = 'change-image-btn';
+  changeBtn.style.cssText = `
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+  `;
+  changeBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Cambiar Imagen';
+  changeBtn.addEventListener('click', () => openCloudinaryUpload(product));
+
+  row.appendChild(img);
+  row.appendChild(infoDiv);
+  row.appendChild(changeBtn);
 
   return row;
 }
@@ -489,10 +392,9 @@ function createProductRowWithImage(product) {
 
 window.loadAdminData = loadAdminData;
 window.loadProductsWithImages = loadProductsWithImages;
+window.loadProductsWithoutImages = loadProductsWithoutImages;
 window.openCloudinaryUpload = openCloudinaryUpload;
 window.saveProductImage = saveProductImage;
-window.assignProductCategory = assignProductCategory;
-window.updateProductStock = updateProductStock;
 window.refreshProductLists = refreshProductLists;
 
-log.success('tienda-admin.js cargado');
+log.success('tienda-admin.js v2 cargado - Optimizado');
