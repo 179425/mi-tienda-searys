@@ -261,7 +261,7 @@ function createProductCard(product) {
     stockBadge.className = isOutOfStock ? 'stock-badge' : 'stock-badge in-stock';
     stockBadge.innerHTML = isOutOfStock ? 
         '<i class="fas fa-times-circle"></i> Agotado' : 
-        `<i class="fas fa-check-circle"></i> ${product.quantity}`;
+        '<i class="fas fa-check-circle"></i> Disponible';
     
     // Ensamblar contenedor de imagen
     imageContainer.appendChild(productImage);
