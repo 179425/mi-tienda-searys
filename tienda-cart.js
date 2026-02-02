@@ -339,6 +339,12 @@ async function checkout() {
         renderCart();
         if (typeof closeCartFunc === 'function') {
           closeCartFunc();
+        } else {
+          // closeCartFunc no está en window — cerrar sidebar directamente
+          const sidebar = document.getElementById('cartSidebar');
+          const overlay = document.getElementById('cartOverlay');
+          if (sidebar) sidebar.classList.remove('active');
+          if (overlay) overlay.classList.remove('active');
         }
       }
     }, 1000);
