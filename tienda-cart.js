@@ -244,8 +244,19 @@ async function checkout() {
   try {
     showToast('Guardando pedido...', 'info');
 
+    // Verificar que tiendaDB esté conectado
+    if (!tiendaDB) {
+      log.error('tiendaDB es null — intentando reiniciar');
+      initTiendaDB();
+      if (!tiendaDB) {
+        showToast('Error: no se pudo conectar a la base de datos', 'error');
+        return;
+      }
+    }
+
     // Generar número de pedido único
     const orderNumber = 'WEB-' + Date.now();
+    log.info('Creando pedido: ' + orderNumber);
 
     // Preparar items para la BD
     const orderItems = cart.map(item => ({
@@ -256,6 +267,8 @@ async function checkout() {
       subtotal: item.price * item.quantity,
       image_url: item.image_url || null
     }));
+
+    log.info('Items a guardar: ' + JSON.stringify(orderItems));
 
     // Guardar en pending_orders
     const { data: orderData, error: orderError } = await tiendaDB
@@ -276,12 +289,12 @@ async function checkout() {
       .single();
 
     if (orderError) {
-      console.error('Error guardando pedido:', orderError);
-      showToast('Error al guardar el pedido', 'error');
-      return;
+      log.error('Error INSERT: ' + JSON.stringify(orderError));
+      showToast('Error BD: ' + (orderError.message || orderError.code || 'desconocido'), 'error');
+      // No retornamos — igual abrimos WhatsApp para que no se pierda el pedido
+    } else {
+      log.success('Pedido guardado en BD con ID: ' + orderData.id);
     }
-
-    log.success('Pedido guardado en BD con ID: ' + orderData.id);
 
     // ============================================
     // CONSTRUIR MENSAJE DE WHATSAPP
