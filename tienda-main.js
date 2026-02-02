@@ -256,16 +256,16 @@ function createProductCard(product) {
         }
     };
     
-    // Badge de stock
-    const stockBadge = document.createElement('div');
-    stockBadge.className = isOutOfStock ? 'stock-badge' : 'stock-badge in-stock';
-    stockBadge.innerHTML = isOutOfStock ? 
-        '<i class="fas fa-times-circle"></i> Agotado' : 
-        '<i class="fas fa-check-circle"></i> Disponible';
+    // Badge de stock - solo mostrar si está agotado
+    if (isOutOfStock) {
+        const stockBadge = document.createElement('div');
+        stockBadge.className = 'stock-badge';
+        stockBadge.innerHTML = '<i class="fas fa-times-circle"></i> Agotado';
+        imageContainer.appendChild(stockBadge);
+    }
     
     // Ensamblar contenedor de imagen
     imageContainer.appendChild(productImage);
-    imageContainer.appendChild(stockBadge);
     
     // Click en imagen para abrir modal
     imageContainer.addEventListener('click', (e) => {
