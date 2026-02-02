@@ -1,5 +1,6 @@
 // ============================================
 // TIENDA-CART.JS - Gestión del Carrito
+// VERSIÓN CON INTEGRACIÓN A POS
 // ============================================
 
 // ============================================
@@ -215,10 +216,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============================================
-// CHECKOUT - ENVIAR POR WHATSAPP
+// CHECKOUT - ENVIAR POR WHATSAPP Y GUARDAR EN BD
 // ============================================
 
-function checkout() {
+async function checkout() {
   const cart = window.tiendaCart || [];
 
   if (cart.length === 0) {
@@ -237,44 +238,102 @@ function checkout() {
   }
   const total = subtotal + shipping;
 
-  // Construir mensaje de WhatsApp
-  let message = `🛒 *NUEVO PEDIDO - ${TIENDA_CONFIG.nombre}*\n\n`;
-  message += `📋 *PRODUCTOS:*\n`;
+  // ============================================
+  // GUARDAR PEDIDO EN LA BASE DE DATOS
+  // ============================================
+  try {
+    showToast('Guardando pedido...', 'info');
 
-  cart.forEach((item, index) => {
-    message += `${index + 1}. ${item.name}\n`;
-    message += `   Cantidad: ${item.quantity}\n`;
-    message += `   Precio: ${formatPrice(item.price)}\n`;
-    message += `   Subtotal: ${formatPrice(item.price * item.quantity)}\n\n`;
-  });
+    // Generar número de pedido único
+    const orderNumber = 'WEB-' + Date.now();
 
-  message += `💰 *RESUMEN:*\n`;
-  message += `Subtotal: ${formatPrice(subtotal)}\n`;
-  message += `Envío: ${shipping > 0 ? formatPrice(shipping) : 'GRATIS ✅'}\n`;
-  message += `*TOTAL: ${formatPrice(total)}*\n\n`;
-  message += `📱 Enviado desde SeArys Store`;
+    // Preparar items para la BD
+    const orderItems = cart.map(item => ({
+      product_id: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+      subtotal: item.price * item.quantity,
+      image_url: item.image_url || null
+    }));
 
-  // Codificar mensaje para URL
-  const encodedMessage = encodeURIComponent(message);
+    // Guardar en pending_orders
+    const { data: orderData, error: orderError } = await tiendaDB
+      .from('pending_orders')
+      .insert({
+        order_number: orderNumber,
+        items: orderItems,
+        subtotal: subtotal,
+        shipping: shipping,
+        total: total,
+        status: 'pending',
+        customer_info: {
+          source: 'tienda_online',
+          timestamp: new Date().toISOString()
+        }
+      })
+      .select()
+      .single();
 
-  // Número de WhatsApp
-  const whatsappNumber = formatWhatsAppNumber(TIENDA_CONFIG.whatsappNumber);
-
-  // Construir URL
-  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
-
-  // Abrir WhatsApp
-  window.open(whatsappUrl, '_blank');
-
-  // Preguntar si quiere vaciar el carrito
-  setTimeout(() => {
-    if (confirm('Pedido enviado a WhatsApp.\n\n¿Deseas vaciar el carrito?')) {
-      clearTiendaCart();
-      updateCartBadge();
-      renderCart();
-      closeCartFunc();
+    if (orderError) {
+      console.error('Error guardando pedido:', orderError);
+      showToast('Error al guardar el pedido', 'error');
+      return;
     }
-  }, 1000);
+
+    log.success('Pedido guardado en BD con ID: ' + orderData.id);
+
+    // ============================================
+    // CONSTRUIR MENSAJE DE WHATSAPP
+    // ============================================
+    let message = `🛒 *NUEVO PEDIDO - ${TIENDA_CONFIG.nombre}*\n\n`;
+    message += `📦 *Pedido:* #${orderNumber}\n`;
+    message += `📋 *PRODUCTOS:*\n`;
+
+    cart.forEach((item, index) => {
+      message += `${index + 1}. ${item.name}\n`;
+      message += `   Cantidad: ${item.quantity}\n`;
+      message += `   Precio: ${formatPrice(item.price)}\n`;
+      message += `   Subtotal: ${formatPrice(item.price * item.quantity)}\n\n`;
+    });
+
+    message += `💰 *RESUMEN:*\n`;
+    message += `Subtotal: ${formatPrice(subtotal)}\n`;
+    message += `Envío: ${shipping > 0 ? formatPrice(shipping) : 'GRATIS ✅'}\n`;
+    message += `*TOTAL: ${formatPrice(total)}*\n\n`;
+    message += `✅ *Este pedido ya está en el sistema POS listo para facturar*\n\n`;
+    message += `📱 Enviado desde SeArys Store`;
+
+    // Codificar mensaje para URL
+    const encodedMessage = encodeURIComponent(message);
+
+    // Número de WhatsApp
+    const whatsappNumber = formatWhatsAppNumber(TIENDA_CONFIG.whatsappNumber);
+
+    // Construir URL
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
+
+    // Abrir WhatsApp
+    window.open(whatsappUrl, '_blank');
+
+    showToast('¡Pedido enviado correctamente!', 'success');
+
+    // Preguntar si quiere vaciar el carrito
+    setTimeout(() => {
+      if (confirm('Pedido enviado a WhatsApp y guardado en el sistema.\n\n¿Deseas vaciar el carrito?')) {
+        clearTiendaCart();
+        updateCartBadge();
+        renderCart();
+        if (typeof closeCartFunc === 'function') {
+          closeCartFunc();
+        }
+      }
+    }, 1000);
+
+  } catch (error) {
+    console.error('Error en checkout:', error);
+    showToast('Error al procesar el pedido', 'error');
+  }
 }
 
 // ============================================
@@ -288,4 +347,4 @@ window.removeFromCart = removeFromCart;
 window.clearCart = clearCart;
 window.checkout = checkout;
 
-log.success('tienda-cart.js cargado');
+log.success('tienda-cart.js cargado - Versión con integración POS');
