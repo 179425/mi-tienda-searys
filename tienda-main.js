@@ -233,12 +233,16 @@ function createProductCard(product) {
     const card = document.createElement('div');
     card.className = 'product-card';
     
-    const imageUrl = product.image_url || 'https://via.placeholder.com/300x300?text=Sin+Imagen';
+    const imageUrl = product.image_url || 'https://via.placeholder.com/400x400?text=Sin+Imagen';
     const isOutOfStock = product.quantity <= 0;
     
     if (isOutOfStock) {
         card.classList.add('out-of-stock');
     }
+    
+    // Contenedor de imagen con aspect ratio 1:1
+    const imageContainer = document.createElement('div');
+    imageContainer.className = 'product-image-container';
     
     // Crear imagen con manejo de error seguro
     const productImage = document.createElement('img');
@@ -246,38 +250,50 @@ function createProductCard(product) {
     productImage.alt = product.name;
     productImage.src = imageUrl;
     productImage.onerror = function() {
-        // Prevenir bucle: solo intentar una vez
-        if (this.src !== 'https://via.placeholder.com/300x300?text=Sin+Imagen') {
+        if (this.src !== 'https://via.placeholder.com/400x400?text=Sin+Imagen') {
             this.onerror = null;
-            this.src = 'https://via.placeholder.com/300x300?text=Sin+Imagen';
+            this.src = 'https://via.placeholder.com/400x400?text=Sin+Imagen';
         }
     };
     
+    // Badge de stock
+    const stockBadge = document.createElement('div');
+    stockBadge.className = isOutOfStock ? 'stock-badge' : 'stock-badge in-stock';
+    stockBadge.innerHTML = isOutOfStock ? 
+        '<i class="fas fa-times-circle"></i> Agotado' : 
+        `<i class="fas fa-check-circle"></i> ${product.quantity}`;
+    
+    // Ensamblar contenedor de imagen
+    imageContainer.appendChild(productImage);
+    imageContainer.appendChild(stockBadge);
+    
+    // Click en imagen para abrir modal
+    imageContainer.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openProductModal(product);
+    });
+    
+    // Info del producto
     const infoDiv = document.createElement('div');
     infoDiv.className = 'product-info';
     
+    // Nombre del producto
     const nameH3 = document.createElement('h3');
     nameH3.className = 'product-name';
     nameH3.textContent = product.name;
     
+    // Precio del producto
     const priceDiv = document.createElement('div');
     priceDiv.className = 'product-price';
     priceDiv.textContent = formatPrice(product.sale_price);
     
-    const stockDiv = document.createElement('div');
-    stockDiv.className = 'product-stock';
-    stockDiv.innerHTML = `<i class="fas fa-box"></i> ${isOutOfStock ? 'Agotado' : product.quantity + ' disponibles'}`;
-    
+    // Botón de agregar al carrito
     const addBtn = document.createElement('button');
     addBtn.className = 'add-to-cart-btn';
     addBtn.disabled = isOutOfStock;
-    addBtn.innerHTML = '<i class="fas fa-cart-plus"></i> Agregar';
-    
-    // Event listeners sin inline handlers
-    productImage.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openProductModal(product);
-    });
+    addBtn.innerHTML = isOutOfStock ? 
+        '<i class="fas fa-ban"></i> No Disponible' : 
+        '<i class="fas fa-cart-plus"></i> Agregar al Carrito';
     
     if (!isOutOfStock) {
         addBtn.addEventListener('click', (e) => {
@@ -286,12 +302,13 @@ function createProductCard(product) {
         });
     }
     
+    // Ensamblar info
     infoDiv.appendChild(nameH3);
     infoDiv.appendChild(priceDiv);
-    infoDiv.appendChild(stockDiv);
     infoDiv.appendChild(addBtn);
     
-    card.appendChild(productImage);
+    // Ensamblar tarjeta completa
+    card.appendChild(imageContainer);
     card.appendChild(infoDiv);
     
     return card;
