@@ -294,7 +294,7 @@ function createProductCard(product) {
     addBtn.disabled = isOutOfStock;
     addBtn.innerHTML = isOutOfStock ? 
         '<i class="fas fa-ban"></i> No Disponible' : 
-        '<i class="fas fa-cart-plus"></i> Agregar al Carrito';
+        'Agregar';
     
     if (!isOutOfStock) {
         addBtn.addEventListener('click', (e) => {
