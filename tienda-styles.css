@@ -334,7 +334,7 @@ body {
   position: relative;
   width: 100%;
   height: 280px;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -467,51 +467,50 @@ body {
   transform: scale(1.05);
 }
 
-/* Información del producto - DISEÑO COMPACTO AGRUPADO */
+/* Información del producto - DISEÑO ULTRA COMPACTO Y PROFESIONAL */
 .product-info {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 0.25rem;
   text-align: center;
-  padding: 0 0.75rem;
+  padding: 0 0.5rem;
   width: 100%;
   margin-top: 0;
 }
 
 .product-name {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--gray-800);
-  line-height: 1.3;
+  font-size: 0.925rem;
+  font-weight: 500;
+  color: #1a1a1a;
+  line-height: 1.25;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-height: 2.45rem;
+  min-height: 2.3rem;
   margin-bottom: 0;
-  transition: all 0.3s ease;
-  letter-spacing: -0.02em;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+  transition: all 0.25s ease;
+  letter-spacing: -0.015em;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 .product-card:hover .product-name {
   color: var(--primary);
-  transform: translateY(-2px);
 }
 
 .product-price {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--gray-900);
-  letter-spacing: -0.5px;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #0a0a0a;
+  letter-spacing: -0.03em;
   margin: 0;
-  transition: all 0.3s ease;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+  line-height: 1.2;
+  transition: all 0.25s ease;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 .product-card:hover .product-price {
   color: var(--primary);
-  transform: scale(1.03);
 }
 
 .product-stock {
@@ -525,49 +524,44 @@ body {
   gap: 0.35rem;
 }
 
-/* Botón de agregar al carrito - DISEÑO LIMPIO */
+/* Botón de agregar - DISEÑO PROFESIONAL COMPACTO */
 .add-to-cart-btn {
   width: 100%;
   max-width: 100%;
-  height: 42px;
+  height: 38px;
   background: var(--primary);
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 0.9rem;
-  font-weight: 600;
+  transition: all 0.25s ease;
+  font-size: 0.875rem;
+  font-weight: 500;
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.2);
+  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.15);
   position: relative;
   overflow: hidden;
-  letter-spacing: 0.02em;
-  margin-top: 0.25rem;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+  letter-spacing: 0.015em;
+  margin-top: 0.35rem;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 .add-to-cart-btn i {
-  font-size: 0.95rem;
-  transition: transform 0.3s ease;
+  font-size: 0.875rem;
+  margin-right: 0.4rem;
 }
 
 .add-to-cart-btn:hover {
   background: var(--primary-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.3);
-}
-
-.add-to-cart-btn:hover i {
-  transform: scale(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(79, 70, 229, 0.25);
 }
 
 .add-to-cart-btn:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.2);
 }
 
 .add-to-cart-btn:disabled {
@@ -1562,14 +1556,14 @@ body {
 
   .product-image-container {
     height: 180px;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.625rem;
   }
 
 
   .product-name {
-    font-size: 0.9rem;
-    min-height: 2.3rem;
-    line-height: 1.3;
+    font-size: 0.875rem;
+    min-height: 2.15rem;
+    line-height: 1.25;
   }
   
   .product-stock {
@@ -1578,17 +1572,17 @@ body {
     margin-bottom: 0.5rem;
 
   .product-price {
-    font-size: 1.35rem;
+    font-size: 1.25rem;
     margin: 0;
   }
 
 
   .add-to-cart-btn {
     max-width: 100%;
-    height: 40px;
-    font-size: 0.85rem;
-    padding: 0.625rem 0.875rem;
-    margin-top: 0.25rem;
+    height: 36px;
+    font-size: 0.825rem;
+    padding: 0 0.75rem;
+    margin-top: 0.3rem;
   }
   
   .add-to-cart-btn::before {
