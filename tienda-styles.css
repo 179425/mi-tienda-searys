@@ -348,23 +348,67 @@ body {
   transform: translateY(-5px);
 }
 
-/* Imagen del producto - cuadrada uniforme */
+/* ---- CON imagen real: producto flotante libre ---- */
 .product-image {
   position: absolute;
-  bottom: 45px;
+  bottom: 28px;
   left: 50%;
   transform: translateX(-50%);
-  width: 85%;
-  height: 85%;
-  object-fit: cover;
-  object-position: center;
-  border-radius: 20px;
+  width: 90%;
+  height: 88%;
+  object-fit: contain;
+  object-position: center bottom;
+  border-radius: 0;
+  background: transparent;
   transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-  background: linear-gradient(135deg, #f5f7fa 0%, #e3e7f0 100%);
 }
 
 .product-card:hover .product-image {
-  transform: translateX(-50%) translateY(-15px) scale(1.1);
+  transform: translateX(-50%) translateY(-14px) scale(1.08);
+}
+
+/* ---- SIN imagen: caja placeholder que mantiene el grid ---- */
+.product-image-container.no-image {
+  background: linear-gradient(145deg, #f3f4f6 0%, #eaecf0 100%);
+  border: 2px dashed #d1d5db;
+  border-radius: 20px;
+  filter: none;
+}
+.product-image-container.no-image .product-image {
+  display: none;
+}
+/* ícono cámara centrado (SVG inline como background) */
+.product-image-container.no-image::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -58%);
+  width: 44px;
+  height: 44px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z'/%3E%3Ccircle cx='12' cy='13' r='4'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  z-index: 2;
+}
+/* texto "Sin imagen" debajo del ícono */
+.product-image-container.no-image::after {
+  content: 'Sin imagen';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, 18px);
+  font-size: 0.78rem;
+  color: #9ca3af;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 2;
+  /* neutralizar la sombra oval del ::after base */
+  width: auto;
+  height: auto;
+  background: none;
+  border-radius: 0;
+  filter: none;
 }
 
 /* Base/Plataforma común para todos los productos */
@@ -530,7 +574,8 @@ body {
 }
 
 .product-card.out-of-stock .product-image {
-  filter: grayscale(50%) brightness(0.95);
+  filter: grayscale(40%) brightness(0.9);
+  opacity: 0.7;
 }
 
 .product-card.out-of-stock .product-image-container {
@@ -1021,10 +1066,28 @@ body {
   gap: 2rem;
 }
 
+.product-modal-image {
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  transition: background 0.3s;
+}
 .product-modal-image img {
-  width: 100%; margin-top: auto;
-  border-radius: 16px;
-  object-fit: cover;
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: 0;
+  background: transparent;
+}
+/* modal sin imagen: misma caja */
+.product-modal-image.no-image {
+  background: linear-gradient(145deg, #f3f4f6 0%, #eaecf0 100%);
+  border: 2px dashed #d1d5db;
+}
+.product-modal-image.no-image img {
+  display: none;
 }
 
 .product-modal-info h2 {
