@@ -233,28 +233,29 @@ function createProductCard(product) {
     const card = document.createElement('div');
     card.className = 'product-card';
     
-    const imageUrl = product.image_url || 'https://via.placeholder.com/400x400?text=Sin+Imagen';
+    const hasImage = product.image_url && product.image_url.trim() !== '';
     const isOutOfStock = product.quantity <= 0;
     
     if (isOutOfStock) {
         card.classList.add('out-of-stock');
     }
     
-    // Contenedor de imagen con aspect ratio 1:1
+    // Contenedor de imagen
     const imageContainer = document.createElement('div');
-    imageContainer.className = 'product-image-container';
+    imageContainer.className = 'product-image-container' + (hasImage ? '' : ' no-image');
     
-    // Crear imagen con manejo de error seguro
+    // Imagen del producto
     const productImage = document.createElement('img');
     productImage.className = 'product-image';
     productImage.alt = product.name;
-    productImage.src = imageUrl;
-    productImage.onerror = function() {
-        if (this.src !== 'https://via.placeholder.com/400x400?text=Sin+Imagen') {
+    if (hasImage) {
+        productImage.src = product.image_url;
+        // Si falla la imagen, voltar a estado placeholder
+        productImage.onerror = function() {
             this.onerror = null;
-            this.src = 'https://via.placeholder.com/400x400?text=Sin+Imagen';
-        }
-    };
+            imageContainer.classList.add('no-image');
+        };
+    }
     
     // Badge de stock - solo mostrar si está agotado
     if (isOutOfStock) {
@@ -340,13 +341,20 @@ function openProductModal(product) {
     const modalQty = document.getElementById('modalQty');
     
     if (modalImage) {
-        modalImage.src = product.image_url || 'https://via.placeholder.com/500x500?text=Sin+Imagen';
-        modalImage.onerror = function() {
-            if (this.src !== 'https://via.placeholder.com/500x500?text=Sin+Imagen') {
+        const modalImgWrap = modalImage.parentElement;
+        if (product.image_url && product.image_url.trim() !== '') {
+            modalImage.src = product.image_url;
+            modalImage.style.display = 'block';
+            if (modalImgWrap) modalImgWrap.classList.remove('no-image');
+            modalImage.onerror = function() {
                 this.onerror = null;
-                this.src = 'https://via.placeholder.com/500x500?text=Sin+Imagen';
-            }
-        };
+                this.style.display = 'none';
+                if (modalImgWrap) modalImgWrap.classList.add('no-image');
+            };
+        } else {
+            modalImage.style.display = 'none';
+            if (modalImgWrap) modalImgWrap.classList.add('no-image');
+        }
     }
     if (modalName) modalName.textContent = product.name;
     if (modalPrice) modalPrice.textContent = formatPrice(product.sale_price);
