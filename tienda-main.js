@@ -1,10 +1,16 @@
 // ============================================
-// TIENDA-MAIN.JS - Versión Optimizada v2
+// TIENDA-MAIN.JS - Versión Optimizada v3 con Paginación
 // ============================================
 
 let currentProduct = null;
 let isLoadingProducts = false; // Flag para evitar múltiples cargas
 let renderTimeout = null; // Para debouncing
+
+// Variables de paginación
+let currentPage = 1;
+const PRODUCTS_PER_PAGE = 20; // Cambia este número según prefieras
+let totalPages = 1;
+let allFilteredProducts = []; // Productos después de filtrar
 
 // ============================================
 // INICIALIZACIÓN
@@ -124,6 +130,8 @@ function selectCategory(category) {
         }
     });
     
+    resetPagination(); // Reiniciar a página 1
+    
     // Re-renderizar productos con debounce
     debouncedRenderProducts();
 }
@@ -190,6 +198,7 @@ async function loadAndRenderProducts() {
 function renderProducts(productsToRender = null) {
     const grid = document.getElementById('productsGrid');
     const emptyState = document.getElementById('emptyState');
+    const paginationContainer = document.getElementById('paginationContainer');
     
     if (!grid) return;
     
@@ -210,23 +219,52 @@ function renderProducts(productsToRender = null) {
         );
     }
     
+    // Guardar productos filtrados
+    allFilteredProducts = products;
+    
+    // Calcular paginación
+    totalPages = Math.ceil(products.length / PRODUCTS_PER_PAGE);
+    
+    // Asegurar que currentPage esté en rango válido
+    if (currentPage > totalPages && totalPages > 0) {
+        currentPage = totalPages;
+    }
+    if (currentPage < 1) {
+        currentPage = 1;
+    }
+    
     // Mostrar estado vacío si no hay productos
     if (products.length === 0) {
         grid.style.display = 'none';
         if (emptyState) emptyState.style.display = 'block';
+        if (paginationContainer) paginationContainer.style.display = 'none';
         return;
     }
     
     grid.style.display = 'grid';
     if (emptyState) emptyState.style.display = 'none';
     
-    // Renderizar productos
+    // Calcular productos a mostrar en la página actual
+    const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
+    const endIndex = startIndex + PRODUCTS_PER_PAGE;
+    const productsToShow = products.slice(startIndex, endIndex);
+    
+    // Renderizar productos de la página actual
     grid.innerHTML = '';
     
-    products.forEach(product => {
+    productsToShow.forEach(product => {
         const card = createProductCard(product);
         grid.appendChild(card);
     });
+    
+    // Actualizar paginación
+    updatePagination();
+    
+    // Scroll al inicio de productos
+    const productsSection = document.querySelector('.products-section');
+    if (productsSection && currentPage > 1) {
+        productsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 function createProductCard(product) {
@@ -268,10 +306,12 @@ function createProductCard(product) {
     // Ensamblar contenedor de imagen
     imageContainer.appendChild(productImage);
     
-    // Click en imagen para abrir modal
+    // Click en imagen para abrir modal de SOLO IMAGEN
     imageContainer.addEventListener('click', (e) => {
         e.stopPropagation();
-        openProductModal(product);
+        if (hasImage) {
+            openImageModal(product.image_url);
+        }
     });
     
     // Info del producto
@@ -460,6 +500,43 @@ function setupEventListeners() {
             switchAdminTab(tabName);
         });
     });
+    
+    // Paginación
+    const prevPageBtn = document.getElementById('prevPageBtn');
+    const nextPageBtn = document.getElementById('nextPageBtn');
+    
+    if (prevPageBtn) {
+        prevPageBtn.addEventListener('click', goToPrevPage);
+    }
+    if (nextPageBtn) {
+        nextPageBtn.addEventListener('click', goToNextPage);
+    }
+    
+    // Modal de imagen
+    const closeImageModal = document.getElementById('closeImageModal');
+    const imageModal = document.getElementById('imageModal');
+    
+    if (closeImageModal) {
+        closeImageModal.addEventListener('click', () => {
+            window.closeImageModal();
+        });
+    }
+    
+    // Cerrar modal de imagen al hacer clic en el fondo
+    if (imageModal) {
+        imageModal.addEventListener('click', (e) => {
+            if (e.target === imageModal) {
+                window.closeImageModal();
+            }
+        });
+    }
+    
+    // Cerrar modal de imagen con tecla ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            window.closeImageModal();
+        }
+    });
 }
 
 function handleSearch() {
@@ -471,6 +548,7 @@ function handleSearch() {
         renderCategories();
     }
     
+    resetPagination(); // Reiniciar a página 1
     debouncedRenderProducts();
 }
 
@@ -691,6 +769,83 @@ function showToast(message, type = 'success') {
 }
 
 // ============================================
+// PAGINACIÓN
+// ============================================
+
+function updatePagination() {
+    const paginationContainer = document.getElementById('paginationContainer');
+    const paginationInfo = document.getElementById('paginationInfo');
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    
+    if (!paginationContainer) return;
+    
+    // Mostrar/ocultar paginación
+    if (totalPages <= 1) {
+        paginationContainer.style.display = 'none';
+        return;
+    }
+    
+    paginationContainer.style.display = 'flex';
+    
+    // Actualizar info
+    if (paginationInfo) {
+        paginationInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+    }
+    
+    // Actualizar botones
+    if (prevBtn) {
+        prevBtn.disabled = currentPage <= 1;
+    }
+    
+    if (nextBtn) {
+        nextBtn.disabled = currentPage >= totalPages;
+    }
+}
+
+function goToNextPage() {
+    if (currentPage < totalPages) {
+        currentPage++;
+        renderProducts();
+    }
+}
+
+function goToPrevPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        renderProducts();
+    }
+}
+
+function resetPagination() {
+    currentPage = 1;
+}
+
+// ============================================
+// MODAL DE IMAGEN
+// ============================================
+
+function openImageModal(imageUrl) {
+    const modal = document.getElementById('imageModal');
+    const img = document.getElementById('imageModalImg');
+    
+    if (modal && img) {
+        img.src = imageUrl;
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
+
+// ============================================
 // EXPORTAR FUNCIONES
 // ============================================
 
@@ -705,5 +860,9 @@ window.closeAdminPanelFunc = closeAdminPanelFunc;
 window.updateCategoryThumbnail = updateCategoryThumbnail;
 window.loadCategoriesManagement = loadCategoriesManagement;
 window.renderCategories = renderCategories;
+window.openImageModal = openImageModal;
+window.closeImageModal = closeImageModal;
+window.goToNextPage = goToNextPage;
+window.goToPrevPage = goToPrevPage;
 
-log.success('tienda-main.js v2 cargado - Optimizado para evitar bucles y parpadeos');
+log.success('tienda-main.js v3 cargado - Con paginación y modal de imagen');
