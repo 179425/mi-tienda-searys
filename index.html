@@ -77,6 +77,23 @@
           <!-- Se llena dinámicamente -->
         </div>
 
+        <!-- Paginación -->
+        <div class="pagination-container" id="paginationContainer" style="display: none;">
+          <button class="pagination-btn" id="prevPageBtn" disabled>
+            <i class="fas fa-chevron-left"></i>
+            Anterior
+          </button>
+          
+          <div class="pagination-info" id="paginationInfo">
+            Página 1 de 1
+          </div>
+          
+          <button class="pagination-btn" id="nextPageBtn" disabled>
+            Siguiente
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+
         <!-- Estado vacío -->
         <div class="empty-state" id="emptyState" style="display: none">
           <i class="fas fa-box-open"></i>
@@ -143,6 +160,14 @@
 
     <!-- OVERLAY para carrito -->
     <div class="cart-overlay" id="cartOverlay"></div>
+
+    <!-- MODAL SOLO IMAGEN -->
+    <div class="image-modal" id="imageModal">
+      <button class="image-modal-close" id="closeImageModal">
+        <i class="fas fa-times"></i>
+      </button>
+      <img id="imageModalImg" src="" alt="" />
+    </div>
 
     <!-- MODAL DE PRODUCTO -->
     <div class="modal" id="productModal">
