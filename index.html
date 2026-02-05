@@ -3,8 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SeArys Store - Tienda Virtual</title>
-
+    
+    <!-- SEO Meta Tags -->
+    <title>SeArys Store - Tienda Virtual de Productos | Compra Online</title>
+    <meta name="description" content="Encuentra los mejores productos en SeArys Store. Bebidas, snacks, lácteos y mucho más. Envío gratis en compras superiores a $50.000. ¡Compra ahora!" />
+    <meta name="keywords" content="tienda online, SeArys, productos, bebidas, snacks, lácteos, compras online, envío gratis" />
+    <meta name="author" content="SeArys Store" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://tudominio.com/" />
+    
+    <!-- Open Graph Meta Tags (para compartir en redes sociales) -->
+    <meta property="og:title" content="SeArys Store - Tu Tienda Virtual de Confianza" />
+    <meta property="og:description" content="Descubre productos de calidad con envío gratis. Registro exclusivo con 5% de descuento." />
+    <meta property="og:image" content="https://tudominio.com/assets/og-image.jpg" />
+    <meta property="og:url" content="https://tudominio.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="SeArys Store" />
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="SeArys Store - Compra Online" />
+    <meta name="twitter:description" content="Los mejores productos a un clic de distancia" />
+    <meta name="twitter:image" content="https://tudominio.com/assets/twitter-image.jpg" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🛒</text></svg>" />
+    
+    <!-- Preconnect para mejorar performance -->
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link rel="preconnect" href="https://upload-widget.cloudinary.com" />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+    
     <!-- Supabase -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
@@ -22,13 +51,41 @@
 
     <!-- Estilos -->
     <link rel="stylesheet" href="tienda-styles.css" />
+    
+    <!-- Google Analytics (reemplaza G-XXXXXXXXXX con tu ID) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX');
+    </script>
+    
+    <!-- Structured Data (Schema.org) para SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Store",
+      "name": "SeArys Store",
+      "description": "Tienda virtual de productos de calidad",
+      "url": "https://tudominio.com",
+      "telephone": "+573173404951",
+      "priceRange": "$$",
+      "currenciesAccepted": "COP",
+      "paymentAccepted": "Cash, WhatsApp",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "CO"
+      }
+    }
+    </script>
   </head>
   <body>
     <!-- HEADER MEJORADO -->
     <header class="store-header">
       <div class="header-container">
         <!-- Logo a la izquierda -->
-        <h1 class="store-logo">
+        <h1 class="store-logo" onclick="window.location.reload()">
           SeArys
         </h1>
 
@@ -40,15 +97,27 @@
             id="searchInput"
             placeholder="Buscar productos..."
             autocomplete="off"
+            aria-label="Buscar productos"
           />
         </div>
 
         <!-- Acciones a la derecha -->
         <div class="header-actions">
+          <!-- Botón modo oscuro -->
+          <button
+            class="theme-toggle-btn"
+            id="themeToggleBtn"
+            title="Cambiar tema"
+            aria-label="Cambiar tema oscuro/claro"
+          >
+            <i class="fas fa-moon"></i>
+          </button>
+          
           <button
             class="user-btn"
             id="userBtn"
             title="Mi Cuenta"
+            aria-label="Abrir cuenta de usuario"
           >
             <i class="fas fa-user"></i>
           </button>
@@ -57,11 +126,23 @@
             class="admin-btn"
             id="adminBtn"
             title="Panel de Administración"
+            aria-label="Abrir panel de administración"
           >
             <i class="fas fa-cog"></i>
           </button>
           
-          <button class="cart-btn" id="cartBtn">
+          <!-- Botón de favoritos -->
+          <button
+            class="favorites-btn"
+            id="favoritesBtn"
+            title="Mis Favoritos"
+            aria-label="Ver productos favoritos"
+          >
+            <i class="fas fa-heart"></i>
+            <span class="favorites-badge" id="favoritesBadge">0</span>
+          </button>
+          
+          <button class="cart-btn" id="cartBtn" aria-label="Abrir carrito de compras">
             <i class="fas fa-shopping-cart"></i>
             <span class="cart-badge" id="cartBadge">0</span>
           </button>
@@ -69,10 +150,65 @@
       </div>
     </header>
 
+    <!-- BREADCRUMBS -->
+    <nav class="breadcrumbs" id="breadcrumbs" aria-label="Navegación de rutas">
+      <div class="breadcrumbs-container">
+        <a href="#" class="breadcrumb-item" onclick="window.location.reload(); return false;">
+          <i class="fas fa-home"></i> Inicio
+        </a>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-item active" id="currentCategory">Todos</span>
+      </div>
+    </nav>
+
     <!-- CATEGORÍAS CON MINIATURAS -->
-    <section class="categories-gallery">
+    <section class="categories-gallery" aria-label="Categorías de productos">
       <div class="categories-scroll" id="categoriesGallery">
         <!-- Se llena dinámicamente con miniaturas -->
+      </div>
+    </section>
+
+    <!-- FILTROS ADICIONALES -->
+    <section class="filters-section">
+      <div class="filters-container">
+        <div class="filter-group">
+          <label for="sortSelect">
+            <i class="fas fa-sort"></i> Ordenar:
+          </label>
+          <select id="sortSelect" aria-label="Ordenar productos">
+            <option value="default">Por defecto</option>
+            <option value="price-asc">Precio: Menor a Mayor</option>
+            <option value="price-desc">Precio: Mayor a Menor</option>
+            <option value="name-asc">Nombre: A-Z</option>
+            <option value="name-desc">Nombre: Z-A</option>
+            <option value="stock-desc">Mayor Stock</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="stockFilter">
+            <i class="fas fa-box"></i> Disponibilidad:
+          </label>
+          <select id="stockFilter" aria-label="Filtrar por disponibilidad">
+            <option value="all">Todos</option>
+            <option value="in-stock">En Stock</option>
+            <option value="low-stock">Poco Stock</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="priceRangeFilter">
+            <i class="fas fa-tags"></i> Rango de Precio:
+          </label>
+          <select id="priceRangeFilter" aria-label="Filtrar por rango de precio">
+            <option value="all">Todos</option>
+            <option value="0-5000">$0 - $5.000</option>
+            <option value="5000-10000">$5.000 - $10.000</option>
+            <option value="10000-20000">$10.000 - $20.000</option>
+            <option value="20000-50000">$20.000 - $50.000</option>
+            <option value="50000+">Más de $50.000</option>
+          </select>
+        </div>
       </div>
     </section>
 
@@ -80,6 +216,11 @@
     <main class="main-content">
       <!-- PRODUCTOS -->
       <section class="products-section">
+        <!-- Contador de resultados -->
+        <div class="results-count" id="resultsCount" style="display: none;">
+          Mostrando <strong id="showingCount">0</strong> de <strong id="totalCount">0</strong> productos
+        </div>
+        
         <!-- Grid de productos -->
         <div class="products-grid" id="productsGrid">
           <!-- Se llena dinámicamente -->
@@ -87,16 +228,16 @@
 
         <!-- Paginación -->
         <div class="pagination-container" id="paginationContainer" style="display: none;">
-          <button class="pagination-btn" id="prevPageBtn" disabled>
+          <button class="pagination-btn" id="prevPageBtn" disabled aria-label="Página anterior">
             <i class="fas fa-chevron-left"></i>
             Anterior
           </button>
           
-          <div class="pagination-info" id="paginationInfo">
+          <div class="pagination-info" id="paginationInfo" aria-live="polite">
             Página 1 de 1
           </div>
           
-          <button class="pagination-btn" id="nextPageBtn" disabled>
+          <button class="pagination-btn" id="nextPageBtn" disabled aria-label="Página siguiente">
             Siguiente
             <i class="fas fa-chevron-right"></i>
           </button>
@@ -118,13 +259,13 @@
     </main>
 
     <!-- CARRITO LATERAL -->
-    <aside class="cart-sidebar" id="cartSidebar">
+    <aside class="cart-sidebar" id="cartSidebar" role="complementary" aria-label="Carrito de compras">
       <div class="cart-header">
         <h3>
           <i class="fas fa-shopping-cart"></i>
           Carrito de Compras
         </h3>
-        <button class="close-cart" id="closeCart">
+        <button class="close-cart" id="closeCart" aria-label="Cerrar carrito">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -166,21 +307,45 @@
       </div>
     </aside>
 
-    <!-- OVERLAY para carrito -->
+    <!-- SIDEBAR DE FAVORITOS -->
+    <aside class="favorites-sidebar" id="favoritesSidebar" role="complementary" aria-label="Productos favoritos">
+      <div class="favorites-header">
+        <h3>
+          <i class="fas fa-heart"></i>
+          Mis Favoritos
+        </h3>
+        <button class="close-favorites" id="closeFavorites" aria-label="Cerrar favoritos">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="favorites-items" id="favoritesItems">
+        <!-- Se llena dinámicamente -->
+      </div>
+
+      <!-- Estado vacío de favoritos -->
+      <div class="favorites-empty" id="favoritesEmpty">
+        <i class="fas fa-heart"></i>
+        <h4>Sin favoritos</h4>
+        <p>Marca productos como favoritos para guardarlos aquí</p>
+      </div>
+    </aside>
+
+    <!-- OVERLAY para carrito y favoritos -->
     <div class="cart-overlay" id="cartOverlay"></div>
 
     <!-- MODAL SOLO IMAGEN -->
-    <div class="image-modal" id="imageModal">
-      <button class="image-modal-close" id="closeImageModal">
+    <div class="image-modal" id="imageModal" role="dialog" aria-modal="true" aria-label="Vista ampliada de imagen">
+      <button class="image-modal-close" id="closeImageModal" aria-label="Cerrar vista de imagen">
         <i class="fas fa-times"></i>
       </button>
       <img id="imageModalImg" src="" alt="" />
     </div>
 
     <!-- MODAL DE USUARIO -->
-    <div class="modal" id="userModal">
+    <div class="modal" id="userModal" role="dialog" aria-modal="true" aria-labelledby="userModalTitle">
       <div class="modal-content user-modal-content">
-        <button class="modal-close" id="closeUserModal">
+        <button class="modal-close" id="closeUserModal" aria-label="Cerrar modal de usuario">
           <i class="fas fa-times"></i>
         </button>
 
@@ -188,7 +353,7 @@
         <div class="user-auth-view" id="userAuthView">
           <div class="user-auth-header">
             <i class="fas fa-user-circle"></i>
-            <h2>Bienvenido</h2>
+            <h2 id="userModalTitle">Bienvenido</h2>
             <p>Regístrate y obtén beneficios exclusivos</p>
           </div>
 
@@ -216,25 +381,25 @@
             </div>
           </div>
 
-          <div class="auth-tabs">
-            <button class="auth-tab active" data-tab="login">
+          <div class="auth-tabs" role="tablist">
+            <button class="auth-tab active" data-tab="login" role="tab" aria-selected="true" aria-controls="loginTab">
               Iniciar Sesión
             </button>
-            <button class="auth-tab" data-tab="register">
+            <button class="auth-tab" data-tab="register" role="tab" aria-selected="false" aria-controls="registerTab">
               Registrarse
             </button>
           </div>
 
           <!-- Tab de Login -->
-          <div class="auth-tab-content active" id="loginTab">
+          <div class="auth-tab-content active" id="loginTab" role="tabpanel">
             <form class="auth-form" id="loginForm">
               <div class="form-group">
-                <label><i class="fas fa-envelope"></i> Correo</label>
-                <input type="email" id="loginEmail" required placeholder="tu@email.com" />
+                <label for="loginEmail"><i class="fas fa-envelope"></i> Correo</label>
+                <input type="email" id="loginEmail" required placeholder="tu@email.com" aria-required="true" />
               </div>
               <div class="form-group">
-                <label><i class="fas fa-lock"></i> Contraseña</label>
-                <input type="password" id="loginPassword" required placeholder="••••••••" />
+                <label for="loginPassword"><i class="fas fa-lock"></i> Contraseña</label>
+                <input type="password" id="loginPassword" required placeholder="••••••••" aria-required="true" />
               </div>
               <button type="submit" class="auth-submit-btn">
                 <i class="fas fa-sign-in-alt"></i>
@@ -244,19 +409,19 @@
           </div>
 
           <!-- Tab de Registro -->
-          <div class="auth-tab-content" id="registerTab">
+          <div class="auth-tab-content" id="registerTab" role="tabpanel">
             <form class="auth-form" id="registerForm">
               <div class="form-group">
-                <label><i class="fas fa-user"></i> Nombre</label>
-                <input type="text" id="registerName" required placeholder="Tu nombre" />
+                <label for="registerName"><i class="fas fa-user"></i> Nombre</label>
+                <input type="text" id="registerName" required placeholder="Tu nombre" aria-required="true" />
               </div>
               <div class="form-group">
-                <label><i class="fas fa-envelope"></i> Correo</label>
-                <input type="email" id="registerEmail" required placeholder="tu@email.com" />
+                <label for="registerEmail"><i class="fas fa-envelope"></i> Correo</label>
+                <input type="email" id="registerEmail" required placeholder="tu@email.com" aria-required="true" />
               </div>
               <div class="form-group">
-                <label><i class="fas fa-lock"></i> Contraseña</label>
-                <input type="password" id="registerPassword" required placeholder="••••••••" minlength="6" />
+                <label for="registerPassword"><i class="fas fa-lock"></i> Contraseña</label>
+                <input type="password" id="registerPassword" required placeholder="••••••••" minlength="6" aria-required="true" />
               </div>
               <button type="submit" class="auth-submit-btn">
                 <i class="fas fa-user-plus"></i>
@@ -311,15 +476,18 @@
     </div>
 
     <!-- MODAL DE PRODUCTO -->
-    <div class="modal" id="productModal">
+    <div class="modal" id="productModal" role="dialog" aria-modal="true" aria-labelledby="modalProductName">
       <div class="modal-content">
-        <button class="modal-close" id="closeProductModal">
+        <button class="modal-close" id="closeProductModal" aria-label="Cerrar detalles del producto">
           <i class="fas fa-times"></i>
         </button>
 
         <div class="product-modal-grid">
           <div class="product-modal-image">
             <img id="modalProductImage" src="" alt="" />
+            <button class="favorite-toggle-btn-large" id="modalFavoriteBtn" aria-label="Agregar a favoritos">
+              <i class="far fa-heart"></i>
+            </button>
           </div>
 
           <div class="product-modal-info">
@@ -334,15 +502,31 @@
             <div class="product-modal-description" id="modalProductDescription">
               <!-- Descripción del producto -->
             </div>
+            
+            <!-- Reviews Section -->
+            <div class="product-reviews-summary" id="reviewsSummary">
+              <div class="stars-display" id="starsDisplay">
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star-half-alt"></i>
+                <span class="rating-number">4.5</span>
+                <span class="reviews-count">(23 reseñas)</span>
+              </div>
+              <button class="view-reviews-btn" id="viewReviewsBtn">
+                Ver todas las reseñas
+              </button>
+            </div>
 
             <div class="quantity-selector">
               <label>Cantidad:</label>
               <div class="quantity-controls">
-                <button class="qty-btn" id="modalQtyMinus">
+                <button class="qty-btn" id="modalQtyMinus" aria-label="Disminuir cantidad">
                   <i class="fas fa-minus"></i>
                 </button>
-                <input type="number" id="modalQty" value="1" min="1" readonly />
-                <button class="qty-btn" id="modalQtyPlus">
+                <input type="number" id="modalQty" value="1" min="1" readonly aria-label="Cantidad" />
+                <button class="qty-btn" id="modalQtyPlus" aria-label="Aumentar cantidad">
                   <i class="fas fa-plus"></i>
                 </button>
               </div>
@@ -357,35 +541,95 @@
       </div>
     </div>
 
-    <!-- MODAL DE ADMINISTRACIÓN -->
-    <div class="modal" id="adminModal">
-      <div class="modal-content admin-modal-content">
-        <button class="modal-close" id="closeAdminModal">
+    <!-- MODAL DE REVIEWS -->
+    <div class="modal" id="reviewsModal" role="dialog" aria-modal="true" aria-labelledby="reviewsModalTitle">
+      <div class="modal-content reviews-modal-content">
+        <button class="modal-close" id="closeReviewsModal" aria-label="Cerrar reseñas">
           <i class="fas fa-times"></i>
         </button>
 
-        <h2>
+        <h2 id="reviewsModalTitle">
+          <i class="fas fa-star"></i>
+          Reseñas de Clientes
+        </h2>
+
+        <div class="reviews-stats">
+          <div class="overall-rating">
+            <div class="big-rating">4.5</div>
+            <div class="stars-large">
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star-half-alt"></i>
+            </div>
+            <div class="total-reviews">Basado en 23 reseñas</div>
+          </div>
+        </div>
+
+        <div class="add-review-section">
+          <h3>Deja tu Reseña</h3>
+          <form class="review-form" id="reviewForm">
+            <div class="star-rating-input">
+              <label>Tu Calificación:</label>
+              <div class="stars-input" id="starsInput">
+                <i class="far fa-star" data-rating="1"></i>
+                <i class="far fa-star" data-rating="2"></i>
+                <i class="far fa-star" data-rating="3"></i>
+                <i class="far fa-star" data-rating="4"></i>
+                <i class="far fa-star" data-rating="5"></i>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="reviewText">Tu Opinión:</label>
+              <textarea id="reviewText" rows="4" placeholder="Comparte tu experiencia con este producto..."></textarea>
+            </div>
+            <button type="submit" class="submit-review-btn">
+              <i class="fas fa-paper-plane"></i>
+              Publicar Reseña
+            </button>
+          </form>
+        </div>
+
+        <div class="reviews-list" id="reviewsList">
+          <!-- Se llena dinámicamente -->
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE ADMINISTRACIÓN -->
+    <div class="modal" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle">
+      <div class="modal-content admin-modal-content">
+        <button class="modal-close" id="closeAdminModal" aria-label="Cerrar panel de administración">
+          <i class="fas fa-times"></i>
+        </button>
+
+        <h2 id="adminModalTitle">
           <i class="fas fa-cog"></i>
           Panel de Administración
         </h2>
 
-        <div class="admin-tabs">
-          <button class="admin-tab active" data-tab="products">
+        <div class="admin-tabs" role="tablist">
+          <button class="admin-tab active" data-tab="products" role="tab" aria-selected="true">
             <i class="fas fa-box"></i>
             Productos
           </button>
-          <button class="admin-tab" data-tab="categories">
+          <button class="admin-tab" data-tab="categories" role="tab" aria-selected="false">
             <i class="fas fa-th-large"></i>
             Categorías
           </button>
-          <button class="admin-tab" data-tab="images">
+          <button class="admin-tab" data-tab="images" role="tab" aria-selected="false">
             <i class="fas fa-images"></i>
             Gestión de Imágenes
+          </button>
+          <button class="admin-tab" data-tab="promotions" role="tab" aria-selected="false">
+            <i class="fas fa-tags"></i>
+            Promociones
           </button>
         </div>
 
         <!-- TAB: Productos -->
-        <div class="admin-tab-content active" id="tabProducts">
+        <div class="admin-tab-content active" id="tabProducts" role="tabpanel">
           <div class="admin-section">
             <h3>Productos sin Imagen</h3>
             <div class="products-without-images" id="productsWithoutImages">
@@ -406,7 +650,7 @@
         </div>
 
         <!-- TAB: Categorías -->
-        <div class="admin-tab-content" id="tabCategories">
+        <div class="admin-tab-content" id="tabCategories" role="tabpanel">
           <div class="admin-section">
             <h3>Gestión de Categorías</h3>
             <p class="admin-help">
@@ -420,7 +664,7 @@
         </div>
 
         <!-- TAB: Imágenes -->
-        <div class="admin-tab-content" id="tabImages">
+        <div class="admin-tab-content" id="tabImages" role="tabpanel">
           <div class="admin-section">
             <h3>Subir Imágenes a Cloudinary</h3>
             <p class="admin-help">
@@ -434,7 +678,7 @@
               <ol>
                 <li>
                   Crea una cuenta gratis en
-                  <a href="https://cloudinary.com" target="_blank"
+                  <a href="https://cloudinary.com" target="_blank" rel="noopener"
                     >cloudinary.com</a
                   >
                 </li>
@@ -452,20 +696,42 @@
             </div>
           </div>
         </div>
+        
+        <!-- TAB: Promociones -->
+        <div class="admin-tab-content" id="tabPromotions" role="tabpanel">
+          <div class="admin-section">
+            <h3>Gestión de Cupones y Promociones</h3>
+            <p class="admin-help">
+              <i class="fas fa-info-circle"></i>
+              Crea cupones de descuento para tus clientes
+            </p>
+            
+            <button class="create-coupon-btn" id="createCouponBtn">
+              <i class="fas fa-plus"></i>
+              Crear Nuevo Cupón
+            </button>
+            
+            <div class="coupons-list" id="couponsList">
+              <!-- Se llena dinámicamente -->
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- NOTIFICACIÓN TOAST -->
-    <div class="toast" id="toast">
+    <div class="toast" id="toast" role="alert" aria-live="polite">
       <i class="fas fa-check-circle"></i>
       <span id="toastMessage"></span>
     </div>
 
     <!-- Scripts -->
     <script src="tienda-config.js"></script>
+    <script src="tienda-features.js"></script>
     <script src="tienda-users.js"></script>
     <script src="tienda-admin.js"></script>
     <script src="tienda-cart.js"></script>
     <script src="tienda-main.js"></script>
+    <script src="tienda-main-extended.js"></script>
   </body>
 </html>
