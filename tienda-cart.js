@@ -150,7 +150,19 @@ function updateCartSummary() {
 
   const cart = window.tiendaCart || [];
 
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  let subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  // Aplicar descuento si el usuario está registrado
+  let discount = 0;
+  let discountAmount = 0;
+  
+  if (typeof getUserDiscount === 'function') {
+    discount = getUserDiscount();
+    if (discount > 0) {
+      discountAmount = Math.round(subtotal * (discount / 100));
+      subtotal -= discountAmount;
+    }
+  }
 
   let shipping = 0;
   if (subtotal > 0 && subtotal < TIENDA_CONFIG.envioGratis) {
@@ -159,7 +171,38 @@ function updateCartSummary() {
 
   const total = subtotal + shipping;
 
-  subtotalEl.textContent = formatPrice(subtotal);
+  // Mostrar descuento si aplica
+  const summaryContainer = document.querySelector('.cart-summary');
+  let discountRow = summaryContainer?.querySelector('.discount-row');
+  
+  if (discount > 0 && summaryContainer) {
+    if (!discountRow) {
+      // Crear fila de descuento si no existe
+      discountRow = document.createElement('div');
+      discountRow.className = 'summary-row discount-row';
+      discountRow.innerHTML = `
+        <span><i class="fas fa-tag"></i> Descuento (${discount}%):</span>
+        <strong id="discountAmount" style="color: var(--secondary);">-${formatPrice(discountAmount)}</strong>
+      `;
+      
+      // Insertar antes de la fila de envío
+      const shippingRow = Array.from(summaryContainer.children).find(el => 
+        el.textContent.includes('Envío')
+      );
+      summaryContainer.insertBefore(discountRow, shippingRow);
+    } else {
+      // Actualizar descuento existente
+      const discountEl = discountRow.querySelector('#discountAmount');
+      if (discountEl) {
+        discountEl.textContent = `-${formatPrice(discountAmount)}`;
+      }
+    }
+  } else if (discountRow) {
+    // Remover fila de descuento si ya no aplica
+    discountRow.remove();
+  }
+
+  subtotalEl.textContent = formatPrice(cart.reduce((sum, item) => sum + item.price * item.quantity, 0));
   shippingEl.textContent = shipping > 0 ? formatPrice(shipping) : 'GRATIS';
   totalEl.textContent = formatPrice(total);
 }
