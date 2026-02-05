@@ -1,6 +1,6 @@
 // ============================================
-// TIENDA-CART.JS - Gestión del Carrito
-// Versión con integración a POS
+// TIENDA-CART.JS - Gestión del Carrito Mejorada
+// Con Cupones y Notificaciones
 // ============================================
 
 // ============================================
@@ -45,21 +45,21 @@ function createCartItem(item, index) {
   const imageUrl = item.image_url || 'https://via.placeholder.com/80x80?text=Sin+Imagen';
 
   div.innerHTML = `
-      <img src="${imageUrl}" alt="${item.name}" class="cart-item-image" onerror="this.src='https://via.placeholder.com/80x80?text=Sin+Imagen'">
+      <img src="${imageUrl}" alt="${item.name}" class="cart-item-image" onerror="this.src='https://via.placeholder.com/80x80?text=Sin+Imagen'" loading="lazy">
       <div class="cart-item-info">
           <div class="cart-item-name">${item.name}</div>
           <div class="cart-item-price">${formatPrice(item.price)}</div>
           <div class="cart-item-qty">
-              <button class="cart-qty-btn minus-btn" data-index="${index}">
+              <button class="cart-qty-btn minus-btn" data-index="${index}" aria-label="Disminuir cantidad">
                   <i class="fas fa-minus"></i>
               </button>
               <span class="cart-qty-value">${item.quantity}</span>
-              <button class="cart-qty-btn plus-btn" data-index="${index}">
+              <button class="cart-qty-btn plus-btn" data-index="${index}" aria-label="Aumentar cantidad">
                   <i class="fas fa-plus"></i>
               </button>
           </div>
       </div>
-      <button class="cart-item-remove" data-index="${index}">
+      <button class="cart-item-remove" data-index="${index}" aria-label="Eliminar producto">
           <i class="fas fa-trash-alt"></i>
       </button>
   `;
@@ -138,7 +138,7 @@ function updateCartBadge() {
 }
 
 // ============================================
-// ACTUALIZAR RESUMEN
+// ACTUALIZAR RESUMEN CON CUPONES
 // ============================================
 
 function updateCartSummary() {
@@ -149,21 +149,34 @@ function updateCartSummary() {
   if (!subtotalEl || !shippingEl || !totalEl) return;
 
   const cart = window.tiendaCart || [];
+  let rawSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  let subtotal = rawSubtotal;
 
-  let subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-  // Aplicar descuento si el usuario está registrado
-  let discount = 0;
-  let discountAmount = 0;
+  // Aplicar descuento de usuario registrado
+  let userDiscount = 0;
+  let userDiscountAmount = 0;
   
   if (typeof getUserDiscount === 'function') {
-    discount = getUserDiscount();
-    if (discount > 0) {
-      discountAmount = Math.round(subtotal * (discount / 100));
-      subtotal -= discountAmount;
+    userDiscount = getUserDiscount();
+    if (userDiscount > 0) {
+      userDiscountAmount = Math.round(subtotal * (userDiscount / 100));
+      subtotal -= userDiscountAmount;
     }
   }
 
+  // Aplicar descuento de cupón
+  let couponDiscount = 0;
+  let couponDiscountAmount = 0;
+  
+  if (typeof getCouponDiscount === 'function') {
+    couponDiscount = getCouponDiscount();
+    if (couponDiscount > 0) {
+      couponDiscountAmount = Math.round(subtotal * (couponDiscount / 100));
+      subtotal -= couponDiscountAmount;
+    }
+  }
+
+  // Calcular envío
   let shipping = 0;
   if (subtotal > 0 && subtotal < TIENDA_CONFIG.envioGratis) {
     shipping = TIENDA_CONFIG.costoEnvio;
@@ -171,38 +184,89 @@ function updateCartSummary() {
 
   const total = subtotal + shipping;
 
-  // Mostrar descuento si aplica
+  // Actualizar UI del resumen
   const summaryContainer = document.querySelector('.cart-summary');
-  let discountRow = summaryContainer?.querySelector('.discount-row');
-  
-  if (discount > 0 && summaryContainer) {
-    if (!discountRow) {
-      // Crear fila de descuento si no existe
-      discountRow = document.createElement('div');
-      discountRow.className = 'summary-row discount-row';
-      discountRow.innerHTML = `
-        <span><i class="fas fa-tag"></i> Descuento (${discount}%):</span>
-        <strong id="discountAmount" style="color: var(--secondary);">-${formatPrice(discountAmount)}</strong>
-      `;
-      
-      // Insertar antes de la fila de envío
-      const shippingRow = Array.from(summaryContainer.children).find(el => 
-        el.textContent.includes('Envío')
-      );
-      summaryContainer.insertBefore(discountRow, shippingRow);
-    } else {
-      // Actualizar descuento existente
-      const discountEl = discountRow.querySelector('#discountAmount');
-      if (discountEl) {
-        discountEl.textContent = `-${formatPrice(discountAmount)}`;
-      }
-    }
-  } else if (discountRow) {
-    // Remover fila de descuento si ya no aplica
-    discountRow.remove();
+  if (!summaryContainer) return;
+
+  // Remover filas de descuento previas
+  summaryContainer.querySelectorAll('.discount-row, .coupon-row').forEach(el => el.remove());
+
+  // Agregar fila de descuento de usuario si aplica
+  if (userDiscount > 0) {
+    const discountRow = document.createElement('div');
+    discountRow.className = 'summary-row discount-row';
+    discountRow.innerHTML = `
+      <span><i class="fas fa-tag"></i> Descuento Usuario (${userDiscount}%):</span>
+      <strong style="color: var(--secondary);">-${formatPrice(userDiscountAmount)}</strong>
+    `;
+    
+    const shippingRow = Array.from(summaryContainer.children).find(el => 
+      el.textContent.includes('Envío')
+    );
+    summaryContainer.insertBefore(discountRow, shippingRow);
   }
 
-  subtotalEl.textContent = formatPrice(cart.reduce((sum, item) => sum + item.price * item.quantity, 0));
+  // Agregar fila de cupón si aplica
+  if (couponDiscount > 0 && window.appliedCoupon) {
+    const couponRow = document.createElement('div');
+    couponRow.className = 'summary-row coupon-row';
+    couponRow.innerHTML = `
+      <span>
+        <i class="fas fa-ticket-alt"></i> Cupón "${window.appliedCoupon.code}" (${couponDiscount}%):
+      </span>
+      <strong style="color: var(--secondary);">-${formatPrice(couponDiscountAmount)}</strong>
+    `;
+    
+    const shippingRow = Array.from(summaryContainer.children).find(el => 
+      el.textContent.includes('Envío')
+    );
+    summaryContainer.insertBefore(couponRow, shippingRow);
+  }
+
+  // Agregar input de cupón si no existe
+  let couponInput = summaryContainer.querySelector('.coupon-input-container');
+  if (!couponInput && !window.appliedCoupon) {
+    couponInput = document.createElement('div');
+    couponInput.className = 'coupon-input-container';
+    couponInput.innerHTML = `
+      <div class="coupon-input-wrapper">
+        <input type="text" id="couponCodeInput" placeholder="Código de cupón" aria-label="Código de cupón">
+        <button class="apply-coupon-btn" id="applyCouponBtn">
+          <i class="fas fa-check"></i>
+          Aplicar
+        </button>
+      </div>
+    `;
+    
+    const firstRow = summaryContainer.querySelector('.summary-row');
+    summaryContainer.insertBefore(couponInput, firstRow);
+    
+    const applyBtn = couponInput.querySelector('#applyCouponBtn');
+    applyBtn.addEventListener('click', () => {
+      const input = document.getElementById('couponCodeInput');
+      const code = input.value.trim();
+      
+      if (code && typeof applyCoupon === 'function') {
+        if (applyCoupon(code)) {
+          input.value = '';
+        }
+      } else {
+        showToast('Ingresa un código de cupón', 'error');
+      }
+    });
+  } else if (couponInput && window.appliedCoupon) {
+    // Mostrar botón para remover cupón
+    couponInput.innerHTML = `
+      <div class="coupon-applied">
+        <span><i class="fas fa-check-circle"></i> Cupón aplicado: ${window.appliedCoupon.code}</span>
+        <button class="remove-coupon-btn" onclick="removeCoupon()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    `;
+  }
+
+  subtotalEl.textContent = formatPrice(rawSubtotal);
   shippingEl.textContent = shipping > 0 ? formatPrice(shipping) : 'GRATIS';
   totalEl.textContent = formatPrice(total);
 }
@@ -237,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============================================
-// CHECKOUT - GUARDAR EN BD + ENVIAR WHATSAPP
+// CHECKOUT MEJORADO - CON EMAIL Y TRACKING
 // ============================================
 
 async function checkout() {
@@ -249,11 +313,32 @@ async function checkout() {
   }
 
   // Calcular totales
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const rawSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  let subtotal = rawSubtotal;
+  
+  // Aplicar descuentos
+  let userDiscount = 0;
+  let couponDiscount = 0;
+  
+  if (typeof getUserDiscount === 'function') {
+    userDiscount = getUserDiscount();
+    if (userDiscount > 0) {
+      subtotal -= Math.round(subtotal * (userDiscount / 100));
+    }
+  }
+  
+  if (typeof getCouponDiscount === 'function') {
+    couponDiscount = getCouponDiscount();
+    if (couponDiscount > 0) {
+      subtotal -= Math.round(subtotal * (couponDiscount / 100));
+    }
+  }
+  
   let shipping = 0;
   if (subtotal > 0 && subtotal < TIENDA_CONFIG.envioGratis) {
     shipping = TIENDA_CONFIG.costoEnvio;
   }
+  
   const total = subtotal + shipping;
 
   // Número de pedido único
@@ -274,23 +359,52 @@ async function checkout() {
         subtotal: item.price * item.quantity
       }));
 
+      const orderData = {
+        order_number: orderNumber,
+        items: orderItems,
+        subtotal: rawSubtotal,
+        user_discount: userDiscount,
+        coupon_discount: couponDiscount,
+        coupon_code: window.appliedCoupon?.code || null,
+        shipping: shipping,
+        total: total,
+        status: 'pending',
+        customer_info: {
+          source: 'tienda_online',
+          user_id: window.currentUser?.id || null,
+          user_email: window.currentUser?.email || null,
+          user_name: window.currentUser?.name || null
+        }
+      };
+
       const { error: orderError } = await tiendaDB
         .from('pending_orders')
-        .insert({
-          order_number: orderNumber,
-          items: orderItems,
-          subtotal: subtotal,
-          shipping: shipping,
-          total: total,
-          status: 'pending',
-          customer_info: { source: 'tienda_online' }
-        });
+        .insert(orderData);
 
       if (orderError) {
         console.error('Error guardando pedido:', orderError);
-        showToast('Advertencia: pedido no guardado en sistema. Se envía por WhatsApp de todas forma.', 'error');
+        showToast('Advertencia: pedido no guardado en sistema. Se envía por WhatsApp de todas formas.', 'error');
       } else {
         console.log('Pedido guardado OK:', orderNumber);
+        
+        // Incrementar contador de pedidos del usuario
+        if (window.currentUser && typeof incrementUserOrders === 'function') {
+          incrementUserOrders(window.currentUser.id);
+        }
+        
+        // Marcar cupón como usado
+        if (window.appliedCoupon) {
+          const couponIndex = window.coupons?.findIndex(c => c.id === window.appliedCoupon.id);
+          if (couponIndex !== -1 && window.coupons) {
+            window.coupons[couponIndex].used++;
+            if (typeof saveCoupons === 'function') {
+              saveCoupons();
+            }
+          }
+        }
+        
+        // TODO: Enviar email de confirmación
+        // sendOrderConfirmationEmail(orderData);
       }
     }
   } catch (e) {
@@ -300,7 +414,13 @@ async function checkout() {
   // ---- CONSTRUIR MENSAJE WHATSAPP ----
   let message = '*NUEVO PEDIDO - ' + TIENDA_CONFIG.nombre + '*\n\n';
   message += 'Pedido: #' + orderNumber + '\n';
-  message += 'PRODUCTOS:\n';
+  
+  if (window.currentUser) {
+    message += 'Cliente: ' + (window.currentUser.name || 'Usuario Registrado') + '\n';
+    message += 'Email: ' + window.currentUser.email + '\n';
+  }
+  
+  message += '\nPRODUCTOS:\n';
 
   cart.forEach((item, index) => {
     message += (index + 1) + '. ' + item.name + '\n';
@@ -310,10 +430,19 @@ async function checkout() {
   });
 
   message += 'RESUMEN:\n';
-  message += 'Subtotal: ' + formatPrice(subtotal) + '\n';
-  message += 'Envio: ' + (shipping > 0 ? formatPrice(shipping) : 'GRATIS') + '\n';
+  message += 'Subtotal: ' + formatPrice(rawSubtotal) + '\n';
+  
+  if (userDiscount > 0) {
+    message += 'Descuento Usuario (' + userDiscount + '%): -' + formatPrice(Math.round(rawSubtotal * (userDiscount / 100))) + '\n';
+  }
+  
+  if (couponDiscount > 0 && window.appliedCoupon) {
+    message += 'Cupón "' + window.appliedCoupon.code + '" (' + couponDiscount + '%): -' + formatPrice(Math.round((rawSubtotal - (userDiscount > 0 ? Math.round(rawSubtotal * (userDiscount / 100)) : 0)) * (couponDiscount / 100))) + '\n';
+  }
+  
+  message += 'Envío: ' + (shipping > 0 ? formatPrice(shipping) : 'GRATIS') + '\n';
   message += 'TOTAL: ' + formatPrice(total) + '\n\n';
-  message += 'Este pedido esta en el sistema POS listo para facturar\n';
+  message += 'Este pedido está en el sistema POS listo para facturar\n';
   message += 'Enviado desde SeArys Store';
 
   const whatsappNumber = formatWhatsAppNumber(TIENDA_CONFIG.whatsappNumber);
@@ -325,8 +454,14 @@ async function checkout() {
 
   // Preguntar si vaciar carrito
   setTimeout(() => {
-    if (confirm('Pedido enviado a WhatsApp y guardado en el sistema.\n\nDeseas vaciar el carrito?')) {
+    if (confirm('Pedido enviado a WhatsApp y guardado en el sistema.\n\n¿Deseas vaciar el carrito?')) {
       clearTiendaCart();
+      
+      // Limpiar cupón aplicado
+      if (window.appliedCoupon && typeof removeCoupon === 'function') {
+        window.appliedCoupon = null;
+      }
+      
       updateCartBadge();
       renderCart();
 
@@ -340,6 +475,40 @@ async function checkout() {
 }
 
 // ============================================
+// FUNCIÓN PARA ENVIAR EMAIL (PLACEHOLDER)
+// ============================================
+
+async function sendOrderConfirmationEmail(orderData) {
+  // TODO: Implementar con servicio de email (SendGrid, Mailgun, etc.)
+  // Esta función se puede conectar con un backend que envíe emails
+  
+  console.log('Email de confirmación a enviar:', {
+    to: orderData.customer_info.user_email,
+    order: orderData.order_number,
+    total: orderData.total
+  });
+  
+  // Ejemplo con fetch a un endpoint de backend:
+  /*
+  try {
+    const response = await fetch('https://tu-backend.com/api/send-order-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(orderData)
+    });
+    
+    if (response.ok) {
+      console.log('Email enviado correctamente');
+    }
+  } catch (error) {
+    console.error('Error enviando email:', error);
+  }
+  */
+}
+
+// ============================================
 // EXPORTAR FUNCIONES
 // ============================================
 
@@ -349,5 +518,6 @@ window.updateCartItemQty = updateCartItemQty;
 window.removeFromCart = removeFromCart;
 window.clearCart = clearCart;
 window.checkout = checkout;
+window.sendOrderConfirmationEmail = sendOrderConfirmationEmail;
 
-log.success('tienda-cart.js cargado');
+log.success('tienda-cart.js mejorado cargado - Con cupones y notificaciones');
