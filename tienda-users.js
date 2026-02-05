@@ -19,32 +19,52 @@ async function registerUser(name, email, password) {
             options: {
                 data: {
                     display_name: name
-                }
+                },
+                emailRedirectTo: window.location.origin
             }
         });
 
         if (error) throw error;
 
+        // Verificar si el usuario necesita confirmar email
+        if (data?.user && !data.session) {
+            log.warn('Usuario creado pero requiere confirmación de email');
+            showToast('⚠️ Revisa tu email para confirmar tu cuenta', 'warning');
+            return data;
+        }
+
         log.success('Usuario registrado exitosamente');
-        showToast('✅ Cuenta creada con éxito. ¡Bienvenido!', 'success');
         
-        // Guardar datos del usuario
-        await saveUserData({
-            id: data.user.id,
-            email: email,
-            name: name,
-            created_at: new Date().toISOString(),
-            total_orders: 0
-        });
+        // Si hay sesión activa (email auto-confirmado), guardar datos
+        if (data.session) {
+            showToast('✅ Cuenta creada con éxito. ¡Bienvenido!', 'success');
+            
+            // Guardar datos del usuario
+            await saveUserData({
+                id: data.user.id,
+                email: email,
+                name: name,
+                created_at: new Date().toISOString(),
+                total_orders: 0
+            });
+            
+            currentUser = data.user;
+            await loadUserData(data.user.id);
+            updateUserUI();
+        } else {
+            showToast('✅ Cuenta creada. Revisa tu email para confirmar.', 'success');
+        }
 
         return data;
     } catch (error) {
         log.error('Error registrando usuario: ' + error.message);
         
-        if (error.message.includes('already registered')) {
-            showToast('Este correo ya está registrado', 'error');
+        if (error.message.includes('already registered') || error.message.includes('User already registered')) {
+            showToast('❌ Este correo ya está registrado. Intenta iniciar sesión.', 'error');
+        } else if (error.message.includes('Password')) {
+            showToast('❌ La contraseña debe tener al menos 6 caracteres', 'error');
         } else {
-            showToast('Error al crear cuenta: ' + error.message, 'error');
+            showToast('❌ Error al crear cuenta: ' + error.message, 'error');
         }
         
         throw error;
@@ -61,19 +81,27 @@ async function loginUser(email, password) {
         if (error) throw error;
 
         log.success('Inicio de sesión exitoso');
-        showToast('¡Bienvenido de nuevo!', 'success');
+        showToast('✅ ¡Bienvenido de nuevo!', 'success');
+        
+        currentUser = data.user;
         
         // Cargar datos adicionales del usuario
         await loadUserData(data.user.id);
+        updateUserUI();
         
         return data;
     } catch (error) {
         log.error('Error en login: ' + error.message);
+        console.error('Detalles del error:', error);
         
         if (error.message.includes('Invalid login credentials')) {
-            showToast('Correo o contraseña incorrectos', 'error');
+            showToast('❌ Correo o contraseña incorrectos', 'error');
+        } else if (error.message.includes('Email not confirmed')) {
+            showToast('⚠️ Debes confirmar tu email primero. Revisa tu correo.', 'warning');
+        } else if (error.message.includes('Invalid')) {
+            showToast('❌ Credenciales inválidas. Verifica tus datos.', 'error');
         } else {
-            showToast('Error al iniciar sesión', 'error');
+            showToast('❌ Error al iniciar sesión: ' + error.message, 'error');
         }
         
         throw error;
