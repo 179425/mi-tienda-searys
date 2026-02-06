@@ -13,7 +13,7 @@ const USER_DISCOUNT = 5; // 5% de descuento para usuarios registrados
 async function registerUser(name, email, password) {
     try {
         // Registrar en Supabase Auth
-        const { data, error } = await window.tiendaDB.auth.signUp({
+        const { data, error } = await tiendaDB.auth.signUp({
             email: email,
             password: password,
             options: {
@@ -73,7 +73,7 @@ async function registerUser(name, email, password) {
 
 async function loginUser(email, password) {
     try {
-        const { data, error } = await window.tiendaDB.auth.signInWithPassword({
+        const { data, error } = await tiendaDB.auth.signInWithPassword({
             email: email,
             password: password
         });
@@ -110,7 +110,7 @@ async function loginUser(email, password) {
 
 async function logoutUser() {
     try {
-        const { error } = await window.tiendaDB.auth.signOut();
+        const { error } = await tiendaDB.auth.signOut();
         
         if (error) throw error;
         
@@ -133,7 +133,7 @@ async function logoutUser() {
 
 async function checkUserSession() {
     try {
-        const { data: { session } } = await window.tiendaDB.auth.getSession();
+        const { data: { session } } = await tiendaDB.auth.getSession();
         
         if (session) {
             currentUser = session.user;
@@ -175,7 +175,7 @@ async function loadUserData(userId) {
         if (error) {
             // Si no existe el usuario en la tabla, crear registro
             if (error.code === 'PGRST116') {
-                const { data: authUser } = await window.tiendaDB.auth.getUser();
+                const { data: authUser } = await tiendaDB.auth.getUser();
                 await saveUserData({
                     id: userId,
                     email: authUser.user.email,
@@ -198,7 +198,7 @@ async function loadUserData(userId) {
 
 async function incrementUserOrders(userId) {
     try {
-        const { error } = await window.tiendaDB.rpc('increment_user_orders', {
+        const { error } = await tiendaDB.rpc('increment_user_orders', {
             user_id: userId
         });
         
@@ -322,7 +322,7 @@ function isUserLoggedIn() {
 
 document.addEventListener('DOMContentLoaded', () => {
     // Verificar sesión al cargar
-    if (window.tiendaDB) {
+    if (tiendaDB) {
         checkUserSession();
     }
     
