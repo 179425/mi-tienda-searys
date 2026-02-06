@@ -255,7 +255,7 @@ async function saveProductImage(productId, imageUrl) {
   try {
     log.info(`Guardando imagen para producto ${productId}...`);
 
-    const { data, error } = await window.tiendaDB
+    const { data, error } = await tiendaDB
       .from('products')
       .update({ image_url: imageUrl })
       .eq('id', productId)
