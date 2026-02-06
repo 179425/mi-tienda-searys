@@ -345,6 +345,8 @@ async function checkout() {
   const orderNumber = 'WEB-' + Date.now();
 
   // ---- GUARDAR EN SUPABASE ----
+  let savedToDB = false;
+  
   try {
     if (!tiendaDB) {
       initTiendaDB();
@@ -377,15 +379,27 @@ async function checkout() {
         }
       };
 
-      const { error: orderError } = await tiendaDB
+      console.log('📦 Guardando pedido en BD:', orderData);
+
+      const { data, error: orderError } = await tiendaDB
         .from('pending_orders')
-        .insert(orderData);
+        .insert(orderData)
+        .select();
 
       if (orderError) {
-        console.error('Error guardando pedido:', orderError);
-        showToast('Advertencia: pedido no guardado en sistema. Se envía por WhatsApp de todas formas.', 'error');
+        console.error('❌ Error guardando pedido:', orderError);
+        console.error('Detalles del error:', {
+          message: orderError.message,
+          details: orderError.details,
+          hint: orderError.hint,
+          code: orderError.code
+        });
+        showToast('⚠️ Advertencia: pedido NO guardado en sistema POS. Verifica tu base de datos.', 'error');
       } else {
-        console.log('Pedido guardado OK:', orderNumber);
+        console.log('✅ Pedido guardado correctamente en POS:', orderNumber);
+        console.log('Datos guardados:', data);
+        savedToDB = true;
+        showToast('✅ Pedido guardado en sistema POS', 'success');
         
         // Incrementar contador de pedidos del usuario
         if (window.currentUser && typeof incrementUserOrders === 'function') {
@@ -406,9 +420,14 @@ async function checkout() {
         // TODO: Enviar email de confirmación
         // sendOrderConfirmationEmail(orderData);
       }
+    } else {
+      console.error('❌ Base de datos no inicializada');
+      showToast('⚠️ Error: No se pudo conectar a la base de datos', 'error');
     }
   } catch (e) {
-    console.error('Error conexión BD:', e);
+    console.error('❌ Error de conexión a BD:', e);
+    console.error('Stack trace:', e.stack);
+    showToast('⚠️ Error de conexión: Pedido NO guardado en POS', 'error');
   }
 
   // ---- CONSTRUIR MENSAJE WHATSAPP ----
@@ -442,8 +461,17 @@ async function checkout() {
   
   message += 'Envío: ' + (shipping > 0 ? formatPrice(shipping) : 'GRATIS') + '\n';
   message += 'TOTAL: ' + formatPrice(total) + '\n\n';
-  message += 'Este pedido está en el sistema POS listo para facturar\n';
-  message += 'Enviado desde SeArys Store';
+  
+  // Indicar si se guardó en POS
+  if (savedToDB) {
+    message += '✅ Pedido guardado en sistema POS (#' + orderNumber + ')\n';
+    message += 'Listo para facturar desde el punto de venta\n';
+  } else {
+    message += '⚠️ ATENCIÓN: Pedido NO guardado en sistema POS\n';
+    message += 'Debe ingresarse manualmente\n';
+  }
+  
+  message += '\nEnviado desde SeArys Store';
 
   const whatsappNumber = formatWhatsAppNumber(TIENDA_CONFIG.whatsappNumber);
   const whatsappUrl = 'https://wa.me/' + whatsappNumber + '?text=' + encodeURIComponent(message);
@@ -452,26 +480,27 @@ async function checkout() {
 
   showToast('Pedido enviado correctamente', 'success');
 
-  // Preguntar si vaciar carrito
+  // VACIAR CARRITO AUTOMÁTICAMENTE
   setTimeout(() => {
-    if (confirm('Pedido enviado a WhatsApp y guardado en el sistema.\n\n¿Deseas vaciar el carrito?')) {
-      clearTiendaCart();
-      
-      // Limpiar cupón aplicado
-      if (window.appliedCoupon && typeof removeCoupon === 'function') {
-        window.appliedCoupon = null;
-      }
-      
-      updateCartBadge();
-      renderCart();
-
-      // Cerrar sidebar del carrito
-      const sidebar = document.getElementById('cartSidebar');
-      const overlay = document.getElementById('cartOverlay');
-      if (sidebar) sidebar.classList.remove('active');
-      if (overlay) overlay.classList.remove('active');
+    // Limpiar carrito
+    clearTiendaCart();
+    
+    // Limpiar cupón aplicado
+    if (window.appliedCoupon && typeof removeCoupon === 'function') {
+      window.appliedCoupon = null;
     }
-  }, 1000);
+    
+    updateCartBadge();
+    renderCart();
+
+    // Cerrar sidebar del carrito
+    const sidebar = document.getElementById('cartSidebar');
+    const overlay = document.getElementById('cartOverlay');
+    if (sidebar) sidebar.classList.remove('active');
+    if (overlay) overlay.classList.remove('active');
+    
+    showToast('Carrito vaciado automáticamente', 'info');
+  }, 1500);
 }
 
 // ============================================
