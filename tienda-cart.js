@@ -348,11 +348,12 @@ async function checkout() {
   let savedToDB = false;
   
   try {
-    if (!tiendaDB) {
+    if (!window.tiendaDB) {
+      console.log('⚠️ Base de datos no inicializada, inicializando...');
       initTiendaDB();
     }
 
-    if (tiendaDB) {
+    if (window.tiendaDB) {
       const orderItems = cart.map(item => ({
         product_id: item.id,
         name: item.name,
@@ -381,7 +382,7 @@ async function checkout() {
 
       console.log('📦 Guardando pedido en BD:', orderData);
 
-      const { data, error: orderError } = await tiendaDB
+      const { data, error: orderError } = await window.tiendaDB
         .from('pending_orders')
         .insert(orderData)
         .select();
