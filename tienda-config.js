@@ -47,20 +47,14 @@ const TIENDA_CONFIG = {
 };
 
 // Cliente de Supabase
-window.tiendaDB = null;
+let tiendaDB = null;
 
 function initTiendaDB() {
-  if (typeof supabase !== 'undefined' && !window.tiendaDB) {
-    window.tiendaDB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  if (typeof supabase !== 'undefined' && !tiendaDB) {
+    tiendaDB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     console.log('✅ Base de datos de tienda inicializada');
-    console.log('✅ Cliente Supabase creado:', window.tiendaDB);
     return true;
   }
-  if (window.tiendaDB) {
-    console.log('ℹ️ Base de datos ya inicializada');
-    return true;
-  }
-  console.error('❌ No se pudo inicializar base de datos - Supabase no disponible');
   return false;
 }
 
@@ -200,7 +194,7 @@ async function loadTiendaProducts() {
     isLoadingFromDB = true;
     log.info('Cargando productos de la tienda...');
 
-    const { data, error } = await window.tiendaDB
+    const { data, error } = await tiendaDB
       .from('products')
       .select('*')
       .order('quantity', { ascending: false })
@@ -256,7 +250,7 @@ function formatWhatsAppNumber(number) {
 window.TIENDA_CONFIG = TIENDA_CONFIG;
 window.CLOUDINARY_CONFIG = CLOUDINARY_CONFIG;
 window.ADMIN_CONFIG = ADMIN_CONFIG;
-// window.tiendaDB ya está inicializado en initTiendaDB()
+window.tiendaDB = null;
 window.initTiendaDB = initTiendaDB;
 window.loadTiendaProducts = loadTiendaProducts;
 window.saveTiendaCart = saveTiendaCart;
